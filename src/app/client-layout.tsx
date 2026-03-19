@@ -54,6 +54,8 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
         settingsLng={state.settingsLng}
         settingsFiqh={state.settingsFiqh}
         setSettingsFiqh={state.setSettingsFiqh}
+        settingsHijriOffset={state.settingsHijriOffset}
+        setSettingsHijriOffset={state.setSettingsHijriOffset}
         geoStatus={state.geoStatus}
         locationSource={state.locationSource}
         detectedLocationName={state.detectedLocationName}

@@ -64,16 +64,40 @@ export function getHijriMonthName(calendarDate: Date): string {
   return monthOnlyFormatter.format(d1) + ' - ' + endStr;
 }
 
-export function getHijriDay(year: number, month: number, day: number): string {
-  return new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', { day: 'numeric' }).format(
-    new Date(year, month, day - 1)
-  );
+export function getHijriDay(year: number, month: number, day: number, offsetDays: number = 0): string {
+  const d = new Date(year, month, day - 1);
+  d.setDate(d.getDate() + offsetDays);
+  return new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', { day: 'numeric' }).format(d);
 }
 
-export function getHijriMonth(year: number, month: number, day: number): string {
-  return new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', { month: 'long' }).format(
-    new Date(year, month, day - 1)
-  );
+export function getHijriMonth(year: number, month: number, day: number, offsetDays: number = 0): string {
+  const d = new Date(year, month, day - 1);
+  d.setDate(d.getDate() + offsetDays);
+  return new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', { month: 'long' }).format(d);
+}
+
+export function getCurrentHijriDateStr(offsetDays: number = 0): string {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  const parts = new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', {
+    day: 'numeric', month: 'long', year: 'numeric'
+  }).formatToParts(d);
+  const day = parts.find(p => p.type === 'day')?.value || '';
+  const month = parts.find(p => p.type === 'month')?.value || '';
+  const year = parts.find(p => p.type === 'year')?.value || '';
+  return `${day} ${month} ${year}`;
+}
+
+export function getDefaultHijriOffset(): number {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const minusOneZones = [
+      'Asia/Karachi', 'Asia/Kolkata', 'Asia/Dhaka', 'Asia/Colombo', 
+      'Asia/Kabul', 'Asia/Kathmandu', 'Indian/Maldives'
+    ];
+    if (minusOneZones.includes(tz)) return -1;
+  } catch {}
+  return 0;
 }
 
 export const PRAYERS = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'] as const;

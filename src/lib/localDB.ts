@@ -19,6 +19,7 @@ export interface UserSettingsData {
   locationSource: string;
   timingsCacheDate: string;
   timingsCacheData: string;
+  hijriOffset?: number;
 }
 
 // ─── Constants ───

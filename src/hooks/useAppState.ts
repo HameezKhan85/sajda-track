@@ -9,6 +9,8 @@ import {
   type QazaItem,
   type ToastState,
   type AlertModalState,
+  getCurrentHijriDateStr,
+  getDefaultHijriOffset,
 } from '@/lib/utils';
 import * as localDB from '@/lib/localDB';
 import * as drive from '@/lib/googleDrive';
@@ -53,6 +55,7 @@ export function useAppState() {
   const [settingsLat, setSettingsLat] = useState('');
   const [settingsLng, setSettingsLng] = useState('');
   const [settingsFiqh, setSettingsFiqh] = useState('1');
+  const [settingsHijriOffset, setSettingsHijriOffset] = useState(0);
   const [geoStatus, setGeoStatus] = useState<'idle' | 'detecting' | 'success' | 'error'>('idle');
   const [locationSource, setLocationSource] = useState('');
   const [detectedLocationName, setDetectedLocationName] = useState('');
@@ -205,8 +208,7 @@ export function useAppState() {
     setPrayerTimes(newTimes);
     prayerTimesRef.current = newTimes;
 
-    const h = result.date?.hijri;
-    if (h) setHijriDate(`${h.day} ${h.month.en} ${h.year}`);
+    setHijriDate(getCurrentHijriDateStr(settings.hijriOffset || 0));
 
     setTimeout(() => calculateNextPrayer(), 0);
   }, [calculateNextPrayer]);
@@ -217,6 +219,7 @@ export function useAppState() {
       setSettingsLat(s.lat);
       setSettingsLng(s.lng);
       setSettingsFiqh(s.fiqh ?? '1');
+      setSettingsHijriOffset(s.hijriOffset ?? getDefaultHijriOffset());
       setSettingsConfigured(true);
       setGeoStatus('success');
       setDetectedLocationName(s.locationName || '');
@@ -272,10 +275,14 @@ export function useAppState() {
 
       let hijriDayNum: string | undefined;
       let hijriMonthStr: string | undefined;
-      try {
-        hijriDayNum = new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', { day: 'numeric' }).format(new Date(year, month, i - 1));
-        hijriMonthStr = new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', { month: 'long' }).format(new Date(year, month, i - 1));
-      } catch {}
+      if (showHijri) {
+        try {
+          hijriDayNum = new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', { day: 'numeric' }).format(new Date(year, month, i - 1 + settingsHijriOffset));
+          hijriMonthStr = new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', { month: 'long' }).format(new Date(year, month, i - 1 + settingsHijriOffset));
+        } catch (e) {
+          console.error("Error formatting Hijri date:", e);
+        }
+      }
 
       days.push({
         dayNum: i,
@@ -526,6 +533,7 @@ export function useAppState() {
       lat: settingsLat,
       lng: settingsLng,
       fiqh: settingsFiqh,
+      hijriOffset: settingsHijriOffset,
       locationName: detectedLocationName,
       locationSource,
     });
@@ -780,6 +788,7 @@ export function useAppState() {
     settingsModalOpen, setSettingsModalOpen,
     settingsConfigured, settingsLat, settingsLng,
     settingsFiqh, setSettingsFiqh,
+    settingsHijriOffset, setSettingsHijriOffset,
     geoStatus, locationSource, detectedLocationName,
     modalOpen, setModalOpen,
     selectedDate, selectedDateLogs,

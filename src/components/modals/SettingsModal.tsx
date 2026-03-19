@@ -9,6 +9,8 @@ interface SettingsModalProps {
   settingsLng: string;
   settingsFiqh: string;
   setSettingsFiqh: (v: string) => void;
+  settingsHijriOffset: number;
+  setSettingsHijriOffset: (v: number) => void;
   geoStatus: 'idle' | 'detecting' | 'success' | 'error';
   locationSource: string;
   detectedLocationName: string;
@@ -20,6 +22,7 @@ export default function SettingsModal({
   open, onClose,
   settingsLat, settingsLng,
   settingsFiqh, setSettingsFiqh,
+  settingsHijriOffset, setSettingsHijriOffset,
   geoStatus, locationSource, detectedLocationName,
   detectLocation, saveSettings,
 }: SettingsModalProps) {
@@ -99,6 +102,29 @@ export default function SettingsModal({
                     : 'bg-gray-50 dark:bg-zinc-800 text-gray-600 dark:text-zinc-400 border-gray-200 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-700'
                 }`}
               >Shafi / Maliki</button>
+            </div>
+          </div>
+
+          {/* Hijri Adjustment */}
+          <div>
+            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 flex items-center justify-between">
+              <span>Hijri Date Offset</span>
+              <span className="text-[9px] text-sage-600 font-bold tracking-wider">(For Moon Sighting)</span>
+            </label>
+            <div className="flex items-center justify-between bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl px-4 py-3">
+              <button
+                onClick={() => setSettingsHijriOffset(Math.max(-2, settingsHijriOffset - 1))}
+                className="w-10 h-10 flex items-center justify-center rounded-lg bg-white dark:bg-zinc-700 text-gray-600 dark:text-zinc-300 shadow-sm border border-gray-200 dark:border-zinc-600 active:scale-95 transition-all font-bold text-lg"
+              >-</button>
+              <div className="flex flex-col items-center">
+                <span className="text-sm font-bold text-gray-800 dark:text-white">
+                  {settingsHijriOffset > 0 ? `+${settingsHijriOffset}` : settingsHijriOffset} Days
+                </span>
+              </div>
+              <button
+                onClick={() => setSettingsHijriOffset(Math.min(2, settingsHijriOffset + 1))}
+                className="w-10 h-10 flex items-center justify-center rounded-lg bg-white dark:bg-zinc-700 text-gray-600 dark:text-zinc-300 shadow-sm border border-gray-200 dark:border-zinc-600 active:scale-95 transition-all font-bold text-lg"
+              >+</button>
             </div>
           </div>
 

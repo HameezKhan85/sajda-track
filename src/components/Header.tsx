@@ -127,15 +127,6 @@ export default function Header({
             <Settings className="w-5 h-5" />
           </button>
 
-          {/* Notifications Dropdown */}
-          <NotificationDropdown
-            notifications={notifications}
-            unreadCount={unreadCount}
-            markAllRead={markAllRead}
-            clearNotifications={clearNotifications}
-            dismissNotification={dismissNotification}
-          />
-
           {/* Sync Dropdown */}
           <SyncDropdown
             fileInputRef={fileInputRef}
@@ -147,6 +138,17 @@ export default function Header({
             connectDrive={connectDrive}
             disconnectDrive={disconnectDrive}
             syncDrive={syncDrive}
+          />
+        </div>
+
+        {/* Persistent Mobile + Desktop notification Bell */}
+        <div className="flex items-center ml-1 sm:ml-3">
+          <NotificationDropdown
+            notifications={notifications}
+            unreadCount={unreadCount}
+            markAllRead={markAllRead}
+            clearNotifications={clearNotifications}
+            dismissNotification={dismissNotification}
           />
         </div>
 
@@ -208,15 +210,6 @@ export default function Header({
               <span>Settings</span>
             </button>
 
-            {/* Mobile Notifications */}
-            <MobileNotificationSection
-              notifications={notifications}
-              unreadCount={unreadCount}
-              markAllRead={markAllRead}
-              clearNotifications={clearNotifications}
-              setMobileMenuOpen={setMobileMenuOpen}
-            />
-
             <MobileSyncSection
               fileInputRef={fileInputRef}
               setMobileMenuOpen={setMobileMenuOpen}
@@ -273,7 +266,7 @@ function NotificationDropdown({
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-3 w-80 bg-white dark:bg-zinc-800 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-black/50 border border-gray-100 dark:border-zinc-700 z-50 overflow-hidden flex flex-col max-h-[420px]">
+          <div className="absolute right-0 top-full mt-[20px] w-80 bg-white dark:bg-zinc-800 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-black/50 border border-gray-100 dark:border-zinc-700 z-50 overflow-hidden flex flex-col max-h-[420px]">
             {/* Header */}
             <div className="px-4 py-3 border-b border-gray-100 dark:border-zinc-700 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
@@ -335,7 +328,6 @@ function NotificationDropdown({
 
             {/* Footer */}
             <div className="px-3 py-2 border-t border-gray-100 dark:border-zinc-700 flex items-center gap-2 shrink-0">
-
               {notifications.length > 0 && (
                 <button
                   onClick={clearNotifications}
@@ -387,7 +379,7 @@ function SyncDropdown({ fileInputRef, exportData, setResetModalOpen, driveConnec
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-3 w-72 bg-white dark:bg-zinc-900 rounded-2xl shadow-xl shadow-gray-200/50 dark:shadow-black/50 border border-gray-100 dark:border-zinc-800 py-2 z-50 overflow-hidden text-sm">
+          <div className="absolute right-0 top-full mt-[20px] w-72 bg-white dark:bg-zinc-900 rounded-2xl shadow-xl shadow-gray-200/50 dark:shadow-black/50 border border-gray-100 dark:border-zinc-800 py-2 z-50 overflow-hidden text-sm">
             <div className="py-1">
               <p className="px-5 text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-2">Cloud Sync</p>
               
@@ -475,88 +467,6 @@ function SyncDropdown({ fileInputRef, exportData, setResetModalOpen, driveConnec
             </div>
           </div>
         </>
-      )}
-    </div>
-  );
-}
-
-// ─── Mobile Notification Section ───
-function MobileNotificationSection({
-  notifications, unreadCount,
-  markAllRead, clearNotifications, setMobileMenuOpen,
-}: {
-  notifications: AppNotification[];
-  unreadCount: number;
-  markAllRead: () => void;
-  clearNotifications: () => void;
-  setMobileMenuOpen: (v: boolean) => void;
-}) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <div className="flex flex-col gap-1">
-      <button onClick={() => setOpen(!open)} className="flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800 w-full">
-        <div className="flex items-center gap-3">
-          <Bell className="w-5 h-5" />
-          <span>Notifications</span>
-          {unreadCount > 0 && (
-            <span className="text-[10px] font-bold bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded-full">{unreadCount}</span>
-          )}
-        </div>
-        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
-      </button>
-      {open && (
-        <div className="flex flex-col gap-1 pl-4">
-          
-          {/* Notifications List */}
-          {notifications.length > 0 ? (
-            <div className="max-h-60 overflow-y-auto flex flex-col gap-2 pr-2 mb-2 mt-1">
-              {notifications.map(n => {
-                const NIcon = notifPrayericons[n.icon] || Bell;
-                const diff = Date.now() - n.timestamp;
-                let ago = 'Just now';
-                if (diff >= 60000 && diff < 3600000) ago = `${Math.floor(diff / 60000)}m ago`;
-                else if (diff >= 3600000 && diff < 86400000) ago = `${Math.floor(diff / 3600000)}h ago`;
-                else if (diff >= 86400000) ago = `${Math.floor(diff / 86400000)}d ago`;
-
-                return (
-                  <div key={n.id} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-zinc-800/80 rounded-xl">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-gray-200 dark:bg-zinc-700 text-gray-500 dark:text-gray-400">
-                      <NIcon className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold leading-tight text-gray-900 dark:text-white">{n.title}</p>
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{n.body}</p>
-                      <p className="text-[9px] text-gray-400 mt-1 uppercase font-medium">{ago}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-xs text-gray-500 italic py-2 pl-2">No notifications yet</p>
-          )}
-
-          {/* Mark read */}
-          {unreadCount > 0 && (
-            <button
-              onClick={markAllRead}
-              className="flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 font-medium text-sm gap-3 text-gray-500 dark:text-gray-400 hover:bg-sage-50 hover:text-sage-600 dark:hover:bg-zinc-800"
-            >
-              <Check className="w-4 h-4" /> <span>Mark All Read</span>
-            </button>
-          )}
-
-          {/* Clear */}
-          {notifications.length > 0 && (
-            <button
-              onClick={() => { clearNotifications(); }}
-              className="flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 font-medium text-sm gap-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 dark:text-red-400"
-            >
-              <Trash2 className="w-4 h-4" /> <span>Clear All</span>
-            </button>
-          )}
-        </div>
       )}
     </div>
   );
