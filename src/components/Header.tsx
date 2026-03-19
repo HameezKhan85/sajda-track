@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard, CalendarDays, Layers, Moon, Sun, DownloadCloud, MapPin,
+  LayoutDashboard, CalendarDays, Layers, Moon, Sun, DownloadCloud, Settings,
   User, Upload, Download, Trash2, Menu, ChevronDown, Bell,
   Sunrise, CloudSun, Sunset, Sparkles, X, Check, CheckCheck,
   Cloud, CloudOff, RefreshCw, Loader2,
@@ -123,8 +123,8 @@ export default function Header({
             </button>
           )}
 
-          <button onClick={() => setSettingsModalOpen(true)} className="p-2 text-gray-400 hover:text-sage-600 transition-colors relative" title="Prayer Settings">
-            <MapPin className="w-5 h-5" />
+          <button onClick={() => setSettingsModalOpen(true)} className="p-2 text-gray-400 hover:text-sage-600 transition-colors relative" title="Settings">
+            <Settings className="w-5 h-5" />
           </button>
 
           {/* Notifications Dropdown */}
@@ -136,8 +136,8 @@ export default function Header({
             dismissNotification={dismissNotification}
           />
 
-          {/* Profile Dropdown */}
-          <ProfileDropdown
+          {/* Sync Dropdown */}
+          <SyncDropdown
             fileInputRef={fileInputRef}
             exportData={exportData}
             setResetModalOpen={setResetModalOpen}
@@ -204,8 +204,8 @@ export default function Header({
               <span>Toggle Theme</span>
             </button>
             <button onClick={() => { setSettingsModalOpen(true); setMobileMenuOpen(false); }} className="flex items-center px-4 py-3 rounded-xl transition-all duration-200 font-medium text-sm gap-3 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800">
-              <MapPin className="w-5 h-5" />
-              <span>Location Settings</span>
+              <Settings className="w-5 h-5" />
+              <span>Settings</span>
             </button>
 
             {/* Mobile Notifications */}
@@ -217,7 +217,7 @@ export default function Header({
               setMobileMenuOpen={setMobileMenuOpen}
             />
 
-            <MobileProfileSection
+            <MobileSyncSection
               fileInputRef={fileInputRef}
               setMobileMenuOpen={setMobileMenuOpen}
               setResetModalOpen={setResetModalOpen}
@@ -273,7 +273,7 @@ function NotificationDropdown({
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-zinc-800 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-black/50 border border-gray-100 dark:border-zinc-700 z-50 overflow-hidden flex flex-col max-h-[420px]">
+          <div className="absolute right-0 top-full mt-3 w-80 bg-white dark:bg-zinc-800 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-black/50 border border-gray-100 dark:border-zinc-700 z-50 overflow-hidden flex flex-col max-h-[420px]">
             {/* Header */}
             <div className="px-4 py-3 border-b border-gray-100 dark:border-zinc-700 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
@@ -308,7 +308,7 @@ function NotificationDropdown({
                   return (
                     <div
                       key={n.id}
-                      className={`flex items-start gap-3 px-4 py-3 border-b border-gray-50 dark:border-zinc-700/50 hover:bg-gray-50 dark:hover:bg-zinc-700/30 transition-colors ${
+                      className={`flex items-start gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-zinc-700/30 transition-colors ${
                         !n.read ? 'bg-sage-50/50 dark:bg-sage-900/10' : ''
                       }`}
                     >
@@ -352,8 +352,8 @@ function NotificationDropdown({
   );
 }
 
-// ─── Profile Dropdown (Desktop) ───
-function ProfileDropdown({ fileInputRef, exportData, setResetModalOpen, driveConnected, driveSyncing, lastSyncTime, connectDrive, disconnectDrive, syncDrive }: {
+// ─── Sync Dropdown (Desktop) ───
+function SyncDropdown({ fileInputRef, exportData, setResetModalOpen, driveConnected, driveSyncing, lastSyncTime, connectDrive, disconnectDrive, syncDrive }: {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   exportData: () => void;
   setResetModalOpen: (v: boolean) => void;
@@ -378,23 +378,18 @@ function ProfileDropdown({ fileInputRef, exportData, setResetModalOpen, driveCon
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="w-8 h-8 rounded-full bg-sage-100 dark:bg-sage-900 border border-sage-200 dark:border-sage-800 text-sage-600 dark:text-sage-300 flex items-center justify-center font-bold text-xs ring-2 ring-transparent hover:ring-sage-200 focus:outline-none transition-all cursor-pointer"
+        className="p-2 text-gray-400 hover:text-sage-600 transition-colors relative"
+        title="Data & Sync"
       >
-        HK
+        <RefreshCw className="w-5 h-5" />
       </button>
 
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-zinc-900 rounded-2xl shadow-xl shadow-gray-200/50 dark:shadow-black/50 border border-gray-100 dark:border-zinc-800 py-1 z-50 overflow-hidden text-sm">
-            
-            <div className="px-5 py-3 border-b border-gray-100 dark:border-zinc-800">
-              <p className="font-bold text-gray-900 dark:text-white leading-none">Profile</p>
-              <p className="text-xs text-sage-600 dark:text-sage-500 font-medium mt-1">Sajda Local User</p>
-            </div>
-
-            <div className="py-2">
-              <p className="px-5 text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-2">Data & Sync</p>
+          <div className="absolute right-0 top-full mt-3 w-72 bg-white dark:bg-zinc-900 rounded-2xl shadow-xl shadow-gray-200/50 dark:shadow-black/50 border border-gray-100 dark:border-zinc-800 py-2 z-50 overflow-hidden text-sm">
+            <div className="py-1">
+              <p className="px-5 text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-2">Cloud Sync</p>
               
               {/* Drive Card */}
               <div className="px-3 mb-2">
@@ -512,7 +507,35 @@ function MobileNotificationSection({
       </button>
       {open && (
         <div className="flex flex-col gap-1 pl-4">
+          
+          {/* Notifications List */}
+          {notifications.length > 0 ? (
+            <div className="max-h-60 overflow-y-auto flex flex-col gap-2 pr-2 mb-2 mt-1">
+              {notifications.map(n => {
+                const NIcon = notifPrayericons[n.icon] || Bell;
+                const diff = Date.now() - n.timestamp;
+                let ago = 'Just now';
+                if (diff >= 60000 && diff < 3600000) ago = `${Math.floor(diff / 60000)}m ago`;
+                else if (diff >= 3600000 && diff < 86400000) ago = `${Math.floor(diff / 3600000)}h ago`;
+                else if (diff >= 86400000) ago = `${Math.floor(diff / 86400000)}d ago`;
 
+                return (
+                  <div key={n.id} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-zinc-800/80 rounded-xl">
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-gray-200 dark:bg-zinc-700 text-gray-500 dark:text-gray-400">
+                      <NIcon className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold leading-tight text-gray-900 dark:text-white">{n.title}</p>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{n.body}</p>
+                      <p className="text-[9px] text-gray-400 mt-1 uppercase font-medium">{ago}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-500 italic py-2 pl-2">No notifications yet</p>
+          )}
 
           {/* Mark read */}
           {unreadCount > 0 && (
@@ -539,8 +562,8 @@ function MobileNotificationSection({
   );
 }
 
-// ─── Mobile Profile Section ───
-function MobileProfileSection({ fileInputRef, setMobileMenuOpen, setResetModalOpen, exportData, driveConnected, driveSyncing, lastSyncTime, connectDrive, disconnectDrive, syncDrive }: {
+// ─── Mobile Sync Section ───
+function MobileSyncSection({ fileInputRef, setMobileMenuOpen, setResetModalOpen, exportData, driveConnected, driveSyncing, lastSyncTime, connectDrive, disconnectDrive, syncDrive }: {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   setMobileMenuOpen: (v: boolean) => void;
   setResetModalOpen: (v: boolean) => void;
@@ -558,8 +581,8 @@ function MobileProfileSection({ fileInputRef, setMobileMenuOpen, setResetModalOp
     <div className="flex flex-col gap-1">
       <button onClick={() => setOpen(!open)} className="flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800 w-full">
         <div className="flex items-center gap-3">
-          <User className="w-5 h-5" />
-          <span>Profile (Sajda)</span>
+          <RefreshCw className="w-5 h-5" />
+          <span>Data & Sync</span>
         </div>
         <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
@@ -567,7 +590,6 @@ function MobileProfileSection({ fileInputRef, setMobileMenuOpen, setResetModalOp
         <div className="flex flex-col gap-3 pl-4 py-1 pr-2">
           
           <div className="bg-gray-50 dark:bg-zinc-800/40 rounded-2xl p-3 border border-gray-100 dark:border-zinc-700/50 flex flex-col gap-3">
-            <p className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider text-center">Data & Sync</p>
             
             {/* Drive */}
             {driveConnected ? (
