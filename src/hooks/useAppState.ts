@@ -10,6 +10,8 @@ import {
   type ToastState,
   type AlertModalState,
 } from '@/lib/utils';
+import * as localDB from '@/lib/localDB';
+import * as drive from '@/lib/googleDrive';
 
 export function useAppState() {
   const [currentView, setCurrentView] = useState('dashboard');
@@ -73,6 +75,11 @@ export function useAppState() {
   // PWA
   const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
   const [isStandalone, setIsStandalone] = useState(false);
+
+  // Google Drive
+  const [driveConnected, setDriveConnected] = useState(false);
+  const [driveSyncing, setDriveSyncing] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
 
   // Refs for prayer times to use in interval
   const prayerTimesRef = useRef(prayerTimes);
@@ -140,137 +147,107 @@ export function useAppState() {
     return now < pTime;
   }, [prayerTimes]);
 
-  // ─── Fetch functions ───
-  const fetchData = useCallback(async () => {
+  // ─── Fetch functions (all from localStorage now) ───
+  const fetchData = useCallback(() => {
     const today = getLocalYYYYMMDD();
-    try {
-      const res = await fetch(`/api/prayers?date=${today}`);
-      const data = await res.json();
-      if (data.success) {
-        const logs: Record<string, string> = {};
-        let prayed = 0, missed = 0;
-        data.data.forEach((l: { prayer_name: string; status: string; is_voluntary: number }) => {
-          logs[l.prayer_name] = l.status;
-          if (l.status === 'Prayed' && l.is_voluntary == 0) prayed++;
-          if (l.status === 'Missed' && l.is_voluntary == 0) missed++;
-        });
-        setTodayLogs(logs);
-        setTodayStats({ prayed, missed });
-      }
-    } catch (e) { console.error(e); }
+    const data = localDB.getPrayersByDate(today);
+    const logs: Record<string, string> = {};
+    let prayed = 0, missed = 0;
+    data.forEach(l => {
+      logs[l.prayer_name] = l.status;
+      if (l.status === 'Prayed' && l.is_voluntary === 0) prayed++;
+      if (l.status === 'Missed' && l.is_voluntary === 0) missed++;
+    });
+    setTodayLogs(logs);
+    setTodayStats({ prayed, missed });
   }, []);
 
-  const fetchStreak = useCallback(async () => {
-    try {
-      const res = await fetch('/api/streak');
-      const data = await res.json();
-      if (data.success) setCurrentStreak(data.streak);
-    } catch (e) { console.error(e); }
+  const fetchStreak = useCallback(() => {
+    setCurrentStreak(localDB.calculateStreak());
   }, []);
 
-  const fetchQaza = useCallback(async () => {
-    try {
-      const res = await fetch('/api/qaza', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'get' }),
-      });
-      const data = await res.json();
-      if (data.success && Array.isArray(data.data)) {
-        const map: Record<string, { count: number; total_completed: number }> = {};
-        data.data.forEach((x: { prayer_name: string; count: number; total_completed: number }) => {
-          map[x.prayer_name] = x;
-        });
-        const qd = PRAYERS.map(p => ({
-          prayer_name: p,
-          count: map[p] ? map[p].count : 0,
-          total_completed: map[p] ? map[p].total_completed : 0,
-          manualInput: '',
-        }));
-        setQazaData(qd);
-        const tb = qd.reduce((acc, curr) => acc + (curr.count || 0), 0);
-        setTotalBacklog(tb);
-        fetchStreak();
-      }
-    } catch (e) { console.error(e); }
+  const fetchQaza = useCallback(() => {
+    const data = localDB.getQaza();
+    const qd = PRAYERS.map(p => {
+      const found = data.find(x => x.prayer_name === p);
+      return {
+        prayer_name: p,
+        count: found ? found.count : 0,
+        total_completed: found ? found.total_completed : 0,
+        manualInput: '',
+      };
+    });
+    setQazaData(qd);
+    const tb = qd.reduce((acc, curr) => acc + (curr.count || 0), 0);
+    setTotalBacklog(tb);
+    fetchStreak();
   }, [fetchStreak]);
 
   const fetchPrayerTimings = useCallback(async () => {
-    try {
-      const res = await fetch('/api/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'fetch_timings' }),
-      });
-      const json = await res.json();
-      if (!json.success) return;
-      const timings = json.data.timings;
-      const newTimes = {
-        Fajr: timings.Fajr,
-        Dhuhr: timings.Dhuhr,
-        Asr: timings.Asr,
-        Maghrib: timings.Maghrib,
-        Isha: timings.Isha,
-      };
-      setPrayerTimes(newTimes);
-      prayerTimesRef.current = newTimes;
+    const settings = localDB.getSettings();
+    const lat = settings.lat;
+    const lng = settings.lng;
+    const fiqh = settings.fiqh || '1';
 
-      const h = json.data.date?.hijri;
-      if (h) setHijriDate(`${h.day} ${h.month.en} ${h.year}`);
+    if (!lat || !lng) return;
 
-      // Calculate next prayer immediately
-      setTimeout(() => calculateNextPrayer(), 0);
-    } catch (e) { console.error(e); }
+    const result = await localDB.fetchPrayerTimings(lat, lng, fiqh);
+    if (!result) return;
+
+    const timings = result.timings;
+    const newTimes = {
+      Fajr: timings.Fajr,
+      Dhuhr: timings.Dhuhr,
+      Asr: timings.Asr,
+      Maghrib: timings.Maghrib,
+      Isha: timings.Isha,
+    };
+    setPrayerTimes(newTimes);
+    prayerTimesRef.current = newTimes;
+
+    const h = result.date?.hijri;
+    if (h) setHijriDate(`${h.day} ${h.month.en} ${h.year}`);
+
+    setTimeout(() => calculateNextPrayer(), 0);
   }, [calculateNextPrayer]);
 
   const loadSettings = useCallback(async () => {
-    try {
-      const res = await fetch('/api/settings');
-      const data = await res.json();
-      if (data.success && data.data) {
-        const s = data.data;
-        if (s.lat && s.lng) {
-          setSettingsLat(s.lat);
-          setSettingsLng(s.lng);
-          setSettingsFiqh(s.fiqh ?? '1');
-          setSettingsConfigured(true);
-          setGeoStatus('success');
-          setDetectedLocationName(s.locationName || '');
-          setLocationSource(s.locationSource || '');
-          await fetchPrayerTimings();
-          return;
-        }
-      }
-    } catch (e) { console.error(e); }
+    const s = localDB.getSettings();
+    if (s.lat && s.lng) {
+      setSettingsLat(s.lat);
+      setSettingsLng(s.lng);
+      setSettingsFiqh(s.fiqh ?? '1');
+      setSettingsConfigured(true);
+      setGeoStatus('success');
+      setDetectedLocationName(s.locationName || '');
+      setLocationSource(s.locationSource || '');
+      await fetchPrayerTimings();
+      return;
+    }
     setSettingsModalOpen(true);
   }, [fetchPrayerTimings]);
 
   // ─── Generate calendar data ───
-  const generateCalendar = useCallback(async (dateArg?: Date) => {
+  const generateCalendar = useCallback((dateArg?: Date) => {
     const d = dateArg || calendarDate;
     const year = d.getFullYear();
     const month = d.getMonth();
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-    let monthLogs: Record<string, { prayer: string; status: string }[]> = {};
+    const monthLogData = localDB.getPrayersByMonth(month + 1, year);
+    const monthLogs: Record<string, { prayer: string; status: string }[]> = {};
     const ms = { prayed: 0, missed: 0, qaza: 0 };
 
-    try {
-      const res = await fetch(`/api/prayers?month=${month + 1}&year=${year}`);
-      const data = await res.json();
-      if (data.success) {
-        data.data.forEach((l: { date: string; prayer_name: string; status: string; is_voluntary: number }) => {
-          if (l.is_voluntary == 0) {
-            if (!monthLogs[l.date]) monthLogs[l.date] = [];
-            monthLogs[l.date].push({ prayer: l.prayer_name, status: l.status });
-            if (l.status === 'Prayed') ms.prayed++;
-            else if (l.status === 'Missed') ms.missed++;
-            else if (l.status === 'Qaza') ms.qaza++;
-          }
-        });
+    monthLogData.forEach(l => {
+      if (l.is_voluntary === 0) {
+        if (!monthLogs[l.date]) monthLogs[l.date] = [];
+        monthLogs[l.date].push({ prayer: l.prayer_name, status: l.status });
+        if (l.status === 'Prayed') ms.prayed++;
+        else if (l.status === 'Missed') ms.missed++;
+        else if (l.status === 'Qaza') ms.qaza++;
       }
-    } catch (e) {}
+    });
 
     setMonthStats(ms);
     monthStatsRef.current = ms;
@@ -319,19 +296,14 @@ export function useAppState() {
   }, [calendarDate]);
 
   // ─── Generate last 7 days ───
-  const generateLast7Days = useCallback(async () => {
+  const generateLast7Days = useCallback(() => {
     const today = new Date();
     const to = getLocalYYYYMMDD(today);
     const fromDate = new Date();
     fromDate.setDate(today.getDate() - 6);
     const from = getLocalYYYYMMDD(fromDate);
 
-    let historyData: Record<string, { prayed: number; missed: number; qaza: number; prayers: Record<string, string> }> = {};
-    try {
-      const res = await fetch(`/api/history?from=${from}&to=${to}`);
-      const verify = await res.json();
-      if (verify.success) historyData = verify.data;
-    } catch (e) { console.error(e); }
+    const historyData = localDB.getHistory(from, to);
 
     const days: DayData[] = [];
     for (let i = 6; i >= 0; i--) {
@@ -374,25 +346,17 @@ export function useAppState() {
   }, [todayStats, totalBacklog, updateStatCards]);
 
   // ─── Actions ───
-  const updateStatus = useCallback(async (prayer: string, status: string, isVoluntary = 0) => {
+  const updateStatus = useCallback((prayer: string, status: string, isVoluntary = 0) => {
     const date = getLocalYYYYMMDD();
-    // Optimistic update
     setTodayLogs(prev => ({ ...prev, [prayer]: status }));
-
-    try {
-      await fetch('/api/prayers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date, prayer_name: prayer, status, is_voluntary: isVoluntary }),
-      });
-      fetchData();
-      generateLast7Days();
-      generateCalendar();
-      fetchStreak();
-    } catch (e) { console.error(e); }
+    localDB.upsertPrayer(date, prayer, status, !!isVoluntary);
+    fetchData();
+    generateLast7Days();
+    generateCalendar();
+    fetchStreak();
   }, [fetchData, generateLast7Days, generateCalendar, fetchStreak]);
 
-  const updateStatusDate = useCallback(async (date: string, prayer: string, status: string, isVoluntary = 0) => {
+  const updateStatusDate = useCallback((date: string, prayer: string, status: string, isVoluntary = 0) => {
     const today = getLocalYYYYMMDD();
     if (date === today) {
       setTodayLogs(prev => ({ ...prev, [prayer]: status }));
@@ -400,27 +364,16 @@ export function useAppState() {
     if (date === selectedDate) {
       setSelectedDateLogs(prev => ({ ...prev, [prayer]: status }));
     }
-
-    try {
-      await fetch('/api/prayers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date, prayer_name: prayer, status, is_voluntary: isVoluntary }),
-      });
-      generateLast7Days();
-      if (date === today) fetchData();
-      generateCalendar();
-      fetchStreak();
-    } catch (e) { console.error(e); }
+    localDB.upsertPrayer(date, prayer, status, !!isVoluntary);
+    generateLast7Days();
+    if (date === today) fetchData();
+    generateCalendar();
+    fetchStreak();
   }, [selectedDate, fetchData, generateLast7Days, generateCalendar, fetchStreak]);
 
-  const performQazaAction = useCallback(async (action: string, prayer: string, amount: number) => {
+  const performQazaAction = useCallback((action: string, prayer: string, amount: number) => {
     if (!amount || amount <= 0) return;
-    await fetch('/api/qaza', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, prayer_name: prayer, amount }),
-    });
+    localDB.qazaAction(action, prayer, amount);
 
     if (action === 'subtract') {
       setMonthStats(prev => ({ ...prev, qaza: (prev.qaza || 0) + amount }));
@@ -437,7 +390,7 @@ export function useAppState() {
     setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3500);
   }, []);
 
-  const calculateAndAddQaza = useCallback(async () => {
+  const calculateAndAddQaza = useCallback(() => {
     const { fromDate, toDate, prayer: target } = qazaCalc;
     if (!fromDate || !toDate) {
       showToast('Please select both from and to dates.', 'error');
@@ -457,23 +410,15 @@ export function useAppState() {
     const diffDays = Math.ceil(Math.abs(d2.getTime() - d1.getTime()) / 86400000) + 1;
     if (diffDays > 0) {
       const toUpdate = target === 'All'
-        ? PRAYERS.map(p => ({ action: 'add', prayer_name: p, amount: diffDays }))
-        : [{ action: 'add', prayer_name: target, amount: diffDays }];
+        ? PRAYERS.map(p => ({ prayer: p, amount: diffDays }))
+        : [{ prayer: target, amount: diffDays }];
 
-      try {
-        for (const req of toUpdate) {
-          await fetch('/api/qaza', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(req),
-          });
-        }
-        setQazaCalc({ fromDate: '', toDate: '', prayer: 'All' });
-        fetchQaza();
-        showToast('Successfully computed and added missed prayers.', 'success');
-      } catch {
-        showToast('Error calculating Qaza.', 'error');
+      for (const req of toUpdate) {
+        localDB.qazaAction('add', req.prayer, req.amount);
       }
+      setQazaCalc({ fromDate: '', toDate: '', prayer: 'All' });
+      fetchQaza();
+      showToast('Successfully computed and added missed prayers.', 'success');
     }
   }, [qazaCalc, fetchQaza, showToast]);
 
@@ -507,7 +452,6 @@ export function useAppState() {
     setDetectedLocationName('');
 
     const geoFallback = async () => {
-      // Best chance against adblockers: geojs.io
       try {
         const res = await fetch('https://get.geojs.io/v1/ip/geo.json');
         const data = await res.json();
@@ -525,7 +469,6 @@ export function useAppState() {
         console.warn('GeoJS failed, trying ipwho.is...', e);
       }
 
-      // Second fallback: ipwho.is
       try {
         const res = await fetch('https://ipwho.is/');
         const data = await res.json();
@@ -542,7 +485,7 @@ export function useAppState() {
       } catch (e) {
         console.warn('IPWho failed, no fallbacks left.', e);
       }
-      
+
       setGeoStatus('error');
     };
 
@@ -579,36 +522,26 @@ export function useAppState() {
 
   const saveSettings = useCallback(async () => {
     if (!settingsLat || !settingsLng) return;
-    try {
-      await fetch('/api/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'save',
-          lat: settingsLat, lng: settingsLng, fiqh: settingsFiqh,
-          locationName: detectedLocationName, locationSource,
-        }),
-      });
-      setSettingsConfigured(true);
-      setSettingsModalOpen(false);
-      await fetchPrayerTimings();
-    } catch (e) { console.error(e); }
+    localDB.saveSettings({
+      lat: settingsLat,
+      lng: settingsLng,
+      fiqh: settingsFiqh,
+      locationName: detectedLocationName,
+      locationSource,
+    });
+    setSettingsConfigured(true);
+    setSettingsModalOpen(false);
+    await fetchPrayerTimings();
   }, [settingsLat, settingsLng, settingsFiqh, detectedLocationName, locationSource, fetchPrayerTimings]);
 
-  const openDayModal = useCallback(async (day: DayData) => {
+  const openDayModal = useCallback((day: DayData) => {
     if (day.isPadding) return;
     setSelectedDate(day.dateStr);
     setModalOpen(true);
-    setSelectedDateLogs({});
-    try {
-      const res = await fetch(`/api/prayers?date=${day.dateStr}`);
-      const data = await res.json();
-      if (data.success) {
-        const logs: Record<string, string> = {};
-        data.data.forEach((l: { prayer_name: string; status: string }) => { logs[l.prayer_name] = l.status; });
-        setSelectedDateLogs(logs);
-      }
-    } catch {}
+    const data = localDB.getPrayersByDate(day.dateStr);
+    const logs: Record<string, string> = {};
+    data.forEach(l => { logs[l.prayer_name] = l.status; });
+    setSelectedDateLogs(logs);
   }, []);
 
   const installPWA = useCallback(async () => {
@@ -623,31 +556,36 @@ export function useAppState() {
     }
   }, [deferredPrompt]);
 
-  const importData = useCallback(async (file: File) => {
+  const importData = useCallback((file: File) => {
     setProcessingTitle('Importing Data...');
     setProcessingMessage('Please wait while we merge your records.');
     setIsProcessing(true);
 
-    const formData = new FormData();
-    formData.append('csv_file', file);
-
-    try {
-      const res = await fetch('/api/import', { method: 'POST', body: formData });
-      const data = await res.json();
-      if (data.success) {
-        setAlertModal({ open: true, title: 'Import Successful', message: `Successfully imported and merged ${data.count} records.`, type: 'success' });
-        fetchData();
-        fetchQaza();
-        generateLast7Days();
-      } else {
-        setAlertModal({ open: true, title: 'Import Failed', message: data.message, type: 'error' });
-      }
-    } catch {
-      setAlertModal({ open: true, title: 'Import Error', message: 'Network or server error during import.', type: 'error' });
-    } finally {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const count = localDB.importCSV(text);
       setIsProcessing(false);
-    }
-  }, [fetchData, fetchQaza, generateLast7Days]);
+      if (count === -1) {
+        setAlertModal({ open: true, title: 'Import Failed', message: 'Unrecognized CSV format.', type: 'error' });
+        return;
+      }
+      setAlertModal({ open: true, title: 'Import Successful', message: `Successfully imported and merged ${count} records.`, type: 'success' });
+      fetchData();
+      fetchQaza();
+      generateLast7Days();
+      generateCalendar();
+    };
+    reader.onerror = () => {
+      setIsProcessing(false);
+      setAlertModal({ open: true, title: 'Import Error', message: 'Failed to read the file.', type: 'error' });
+    };
+    reader.readAsText(file);
+  }, [fetchData, fetchQaza, generateLast7Days, generateCalendar]);
+
+  const exportData = useCallback(() => {
+    localDB.downloadCSV();
+  }, []);
 
   const resetData = useCallback(async () => {
     setResetModalOpen(false);
@@ -655,20 +593,55 @@ export function useAppState() {
     setProcessingMessage('Please wait while we wipe your records.');
     setIsProcessing(true);
 
-    try {
-      const res = await fetch('/api/reset', { method: 'POST' });
-      const data = await res.json();
-      if (data.success) {
-        window.location.reload();
-      } else {
-        setAlertModal({ open: true, title: 'Reset Failed', message: data.message, type: 'error' });
-        setIsProcessing(false);
-      }
-    } catch {
-      setAlertModal({ open: true, title: 'Reset Error', message: 'Could not connect to server.', type: 'error' });
-      setIsProcessing(false);
+    // Delete from Drive if connected
+    if (driveConnected) {
+      try { await drive.deleteCloudData(); } catch {}
     }
-  }, []);
+
+    localDB.resetAll();
+    // Brief delay for UI to show processing overlay
+    setTimeout(() => window.location.reload(), 300);
+  }, [driveConnected]);
+
+  // ─── Google Drive Actions ───
+  const connectDrive = useCallback(async () => {
+    const token = await drive.signIn();
+    if (token) {
+      setDriveConnected(true);
+      showToast('Google Drive connected!');
+    } else {
+      showToast('Failed to connect Google Drive.', 'error');
+    }
+  }, [showToast]);
+
+  const disconnectDrive = useCallback(() => {
+    drive.signOut();
+    setDriveConnected(false);
+    setLastSyncTime(null);
+    showToast('Google Drive disconnected.');
+  }, [showToast]);
+
+  const syncDrive = useCallback(async () => {
+    setDriveSyncing(true);
+    const result = await drive.syncToCloud();
+    setDriveSyncing(false);
+
+    if (result.success) {
+      setLastSyncTime(drive.getLastSyncTime());
+      showToast('Synced to Google Drive!');
+      // Refresh all views with merged data
+      fetchData();
+      fetchQaza();
+      generateLast7Days();
+      generateCalendar();
+    } else {
+      showToast(result.error || 'Sync failed.', 'error');
+      // If auth issue, mark disconnect
+      if (result.error?.includes('reconnect')) {
+        setDriveConnected(false);
+      }
+    }
+  }, [showToast, fetchData, fetchQaza, generateLast7Days, generateCalendar]);
 
   // Toggle theme
   const toggleTheme = useCallback(() => {
@@ -733,13 +706,20 @@ export function useAppState() {
     const timeInterval = setInterval(updateTime, 1000);
     const prayerInterval = setInterval(calculateNextPrayer, 60000);
 
-    // Data
+    // Data (from localStorage — synchronous!)
     fetchData();
     fetchStreak();
     fetchQaza();
     generateCalendar();
     generateLast7Days();
     loadSettings();
+
+    // Google Drive status
+    setDriveConnected(drive.isDriveConnected());
+    setLastSyncTime(drive.getLastSyncTime());
+
+    // Load GIS script (non-blocking)
+    drive.loadGISScript().catch(() => {});
 
     // PWA install prompt
     const handleInstallPrompt = (e: Event) => {
@@ -798,9 +778,11 @@ export function useAppState() {
     performQazaAction, calculateAndAddQaza,
     calculateEstimateDate, getTotalQazaCompleted, getMostCompletedQaza,
     detectLocation, saveSettings,
-    openDayModal, installPWA, importData, resetData,
-    changeMonth, changeYear, getPrayerTime,
-    fetchData, generateLast7Days, generateCalendar, fetchQaza,
-    showToast,
+    openDayModal, changeMonth, changeYear,
+    installPWA, importData, exportData, resetData,
+    getPrayerTime,
+    // Google Drive
+    driveConnected, driveSyncing, lastSyncTime,
+    connectDrive, disconnectDrive, syncDrive,
   };
 }

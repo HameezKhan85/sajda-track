@@ -28,11 +28,18 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
         setSettingsModalOpen={state.setSettingsModalOpen}
         setResetModalOpen={state.setResetModalOpen}
         importData={state.importData}
+        exportData={state.exportData}
         notifications={notifs.notifications}
         unreadCount={notifs.unreadCount}
         markAllRead={notifs.markAllRead}
         clearNotifications={notifs.clearNotifications}
         dismissNotification={notifs.dismissNotification}
+        driveConnected={state.driveConnected}
+        driveSyncing={state.driveSyncing}
+        lastSyncTime={state.lastSyncTime}
+        connectDrive={state.connectDrive}
+        disconnectDrive={state.disconnectDrive}
+        syncDrive={state.syncDrive}
       />
 
       <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8">

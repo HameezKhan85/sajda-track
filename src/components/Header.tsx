@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, CalendarDays, Layers, Moon, Sun, DownloadCloud, MapPin,
-  User, Upload, Download, Trash2, Menu, ChevronDown, Bell, BellOff,
-  Sunrise, CloudSun, Sunset, Sparkles, X, Check, CheckCheck, Send,
+  User, Upload, Download, Trash2, Menu, ChevronDown, Bell,
+  Sunrise, CloudSun, Sunset, Sparkles, X, Check, CheckCheck,
+  Cloud, CloudOff, RefreshCw, Loader2,
 } from 'lucide-react';
 import type { AppNotification } from '@/hooks/useNotifications';
 
@@ -31,11 +32,19 @@ interface HeaderProps {
   setSettingsModalOpen: (v: boolean) => void;
   setResetModalOpen: (v: boolean) => void;
   importData: (file: File) => void;
+  exportData: () => void;
   notifications: AppNotification[];
   unreadCount: number;
   markAllRead: () => void;
   clearNotifications: () => void;
   dismissNotification: (id: string) => void;
+  // Google Drive
+  driveConnected: boolean;
+  driveSyncing: boolean;
+  lastSyncTime: string | null;
+  connectDrive: () => Promise<void>;
+  disconnectDrive: () => void;
+  syncDrive: () => Promise<void>;
 }
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -53,9 +62,11 @@ export default function Header({
   currentTime, currentDateStr,
   mobileMenuOpen, setMobileMenuOpen,
   deferredPrompt, isStandalone, installPWA,
-  setSettingsModalOpen, setResetModalOpen, importData,
+  setSettingsModalOpen, setResetModalOpen, importData, exportData,
   notifications, unreadCount,
   markAllRead, clearNotifications, dismissNotification,
+  driveConnected, driveSyncing, lastSyncTime,
+  connectDrive, disconnectDrive, syncDrive,
 }: HeaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pathname = usePathname();
@@ -128,8 +139,14 @@ export default function Header({
           {/* Profile Dropdown */}
           <ProfileDropdown
             fileInputRef={fileInputRef}
-            importData={importData}
+            exportData={exportData}
             setResetModalOpen={setResetModalOpen}
+            driveConnected={driveConnected}
+            driveSyncing={driveSyncing}
+            lastSyncTime={lastSyncTime}
+            connectDrive={connectDrive}
+            disconnectDrive={disconnectDrive}
+            syncDrive={syncDrive}
           />
         </div>
 
@@ -200,7 +217,18 @@ export default function Header({
               setMobileMenuOpen={setMobileMenuOpen}
             />
 
-            <MobileProfileSection fileInputRef={fileInputRef} setMobileMenuOpen={setMobileMenuOpen} setResetModalOpen={setResetModalOpen} />
+            <MobileProfileSection
+              fileInputRef={fileInputRef}
+              setMobileMenuOpen={setMobileMenuOpen}
+              setResetModalOpen={setResetModalOpen}
+              exportData={exportData}
+              driveConnected={driveConnected}
+              driveSyncing={driveSyncing}
+              lastSyncTime={lastSyncTime}
+              connectDrive={connectDrive}
+              disconnectDrive={disconnectDrive}
+              syncDrive={syncDrive}
+            />
           </div>
         </div>
       )}
@@ -325,12 +353,26 @@ function NotificationDropdown({
 }
 
 // ─── Profile Dropdown (Desktop) ───
-function ProfileDropdown({ fileInputRef, importData, setResetModalOpen }: {
+function ProfileDropdown({ fileInputRef, exportData, setResetModalOpen, driveConnected, driveSyncing, lastSyncTime, connectDrive, disconnectDrive, syncDrive }: {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
-  importData: (file: File) => void;
+  exportData: () => void;
   setResetModalOpen: (v: boolean) => void;
+  driveConnected: boolean;
+  driveSyncing: boolean;
+  lastSyncTime: string | null;
+  connectDrive: () => Promise<void>;
+  disconnectDrive: () => void;
+  syncDrive: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
+
+  function formatSyncTime(iso: string | null): string {
+    if (!iso) return 'Never';
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    } catch { return 'Unknown'; }
+  }
 
   return (
     <div className="relative">
@@ -344,25 +386,61 @@ function ProfileDropdown({ fileInputRef, importData, setResetModalOpen }: {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-800 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-black/50 border border-gray-100 dark:border-zinc-700 py-2 z-50 overflow-hidden">
+          <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-zinc-800 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-black/50 border border-gray-100 dark:border-zinc-700 py-2 z-50 overflow-hidden">
             <div className="px-4 py-2 mb-1 border-b border-gray-100 dark:border-zinc-700">
               <p className="text-xs font-bold text-gray-800 dark:text-gray-200">Hameez Khan</p>
               <p className="text-[10px] text-gray-500">Premium User</p>
             </div>
+
+            {/* Google Drive Section */}
+            <div className="px-4 py-2 border-b border-gray-100 dark:border-zinc-700">
+              <p className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-1.5">Google Drive</p>
+              {driveConnected ? (
+                <>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Cloud className="w-3.5 h-3.5 text-emerald-500" />
+                    <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">Connected</span>
+                  </div>
+                  <p className="text-[9px] text-gray-400 dark:text-zinc-500 mb-2">Last sync: {formatSyncTime(lastSyncTime)}</p>
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => { syncDrive(); }}
+                      disabled={driveSyncing}
+                      className="flex-1 flex items-center justify-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-[#3a5245] dark:text-emerald-400 bg-[#f0f4f1] dark:bg-zinc-700 hover:bg-[#e4ece7] dark:hover:bg-zinc-600 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {driveSyncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                      {driveSyncing ? 'Syncing...' : 'Sync Now'}
+                    </button>
+                    <button
+                      onClick={() => { disconnectDrive(); setOpen(false); }}
+                      className="flex items-center justify-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-red-500 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                    >
+                      <CloudOff className="w-3 h-3" />
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <button
+                  onClick={() => { connectDrive(); }}
+                  className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-bold text-[#3a5245] dark:text-emerald-400 bg-[#f0f4f1] dark:bg-zinc-700 hover:bg-[#e4ece7] dark:hover:bg-zinc-600 rounded-lg transition-colors"
+                >
+                  <Cloud className="w-3.5 h-3.5" /> Connect Google Drive
+                </button>
+              )}
+            </div>
+
             <button
               onClick={() => { fileInputRef.current?.click(); setOpen(false); }}
               className="w-full text-left px-4 py-2.5 text-sm hover:bg-sage-50 dark:hover:bg-sage-900/20 text-gray-700 dark:text-gray-300 hover:text-sage-600 dark:hover:text-sage-400 transition-colors flex items-center gap-2"
             >
               <Upload className="w-4 h-4" /> Import Data
             </button>
-            <a
-              href="/api/export"
-              target="_blank"
-              onClick={() => setOpen(false)}
+            <button
+              onClick={() => { exportData(); setOpen(false); }}
               className="w-full text-left px-4 py-2.5 text-sm hover:bg-sage-50 dark:hover:bg-sage-900/20 text-gray-700 dark:text-gray-300 hover:text-sage-600 dark:hover:text-sage-400 transition-colors flex items-center gap-2"
             >
               <Download className="w-4 h-4" /> Export Data
-            </a>
+            </button>
             <div className="border-t border-gray-100 dark:border-zinc-700 my-1" />
             <button
               onClick={() => { setResetModalOpen(true); setOpen(false); }}
@@ -432,10 +510,17 @@ function MobileNotificationSection({
 }
 
 // ─── Mobile Profile Section ───
-function MobileProfileSection({ fileInputRef, setMobileMenuOpen, setResetModalOpen }: {
+function MobileProfileSection({ fileInputRef, setMobileMenuOpen, setResetModalOpen, exportData, driveConnected, driveSyncing, lastSyncTime, connectDrive, disconnectDrive, syncDrive }: {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   setMobileMenuOpen: (v: boolean) => void;
   setResetModalOpen: (v: boolean) => void;
+  exportData: () => void;
+  driveConnected: boolean;
+  driveSyncing: boolean;
+  lastSyncTime: string | null;
+  connectDrive: () => Promise<void>;
+  disconnectDrive: () => void;
+  syncDrive: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -450,12 +535,38 @@ function MobileProfileSection({ fileInputRef, setMobileMenuOpen, setResetModalOp
       </button>
       {open && (
         <div className="flex flex-col gap-1 pl-4">
+          {/* Drive */}
+          {driveConnected ? (
+            <>
+              <button
+                onClick={() => { syncDrive(); }}
+                disabled={driveSyncing}
+                className="flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 font-medium text-sm gap-3 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/10 disabled:opacity-50"
+              >
+                {driveSyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                <span>{driveSyncing ? 'Syncing...' : 'Sync to Drive'}</span>
+              </button>
+              <button
+                onClick={() => { disconnectDrive(); setMobileMenuOpen(false); }}
+                className="flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 font-medium text-sm gap-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 dark:text-red-400"
+              >
+                <CloudOff className="w-4 h-4" /> <span>Disconnect Drive</span>
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => { connectDrive(); setMobileMenuOpen(false); }}
+              className="flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 font-medium text-sm gap-3 text-gray-500 dark:text-gray-400 hover:bg-sage-50 hover:text-sage-600 dark:hover:bg-zinc-800"
+            >
+              <Cloud className="w-4 h-4" /> <span>Connect Google Drive</span>
+            </button>
+          )}
           <button onClick={() => { fileInputRef.current?.click(); setMobileMenuOpen(false); }} className="flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 font-medium text-sm gap-3 text-gray-500 dark:text-gray-400 hover:bg-sage-50 hover:text-sage-600 dark:hover:bg-zinc-800">
             <Upload className="w-4 h-4" /> <span>Import Data</span>
           </button>
-          <a href="/api/export" target="_blank" onClick={() => setMobileMenuOpen(false)} className="flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 font-medium text-sm gap-3 text-gray-500 dark:text-gray-400 hover:bg-sage-50 hover:text-sage-600 dark:hover:bg-zinc-800">
+          <button onClick={() => { exportData(); setMobileMenuOpen(false); }} className="flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 font-medium text-sm gap-3 text-gray-500 dark:text-gray-400 hover:bg-sage-50 hover:text-sage-600 dark:hover:bg-zinc-800">
             <Download className="w-4 h-4" /> <span>Export Data</span>
-          </a>
+          </button>
           <button onClick={() => { setResetModalOpen(true); setMobileMenuOpen(false); }} className="flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 font-medium text-sm gap-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 dark:text-red-400">
             <Trash2 className="w-4 h-4" /> <span>Reset Data</span>
           </button>
