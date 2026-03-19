@@ -3,12 +3,36 @@ import "./globals.css";
 import { ClientLayout } from "./client-layout";
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://sajda-track.netlify.app'),
   title: "Sajda — Salah Tracker",
   description: "A beautiful and intuitive prayer tracking application. Track your daily prayers, manage Qaza, and build consistency.",
   manifest: "/manifest.json",
   icons: {
     icon: "/icons/icon-192x192.svg",
     apple: "/icons/icon-512x512.svg",
+  },
+  openGraph: {
+    title: "Sajda — Salah Tracker",
+    description: "A beautiful and intuitive prayer tracking application. Track your daily prayers, manage Qaza, and build consistency.",
+    url: 'https://sajda-track.netlify.app',
+    siteName: 'Sajda',
+    images: [
+      {
+        // Add a 1200x630 png image here later for best results
+        url: '/icons/icon-512x512.svg',
+        width: 512,
+        height: 512,
+        alt: 'Sajda App Logo',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: "Sajda — Salah Tracker",
+    description: "A beautiful and intuitive prayer tracking application. Track your daily prayers, manage Qaza, and build consistency.",
+    images: ['/icons/icon-512x512.svg'],
   },
 };
 
