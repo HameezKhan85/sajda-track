@@ -4,10 +4,12 @@ import { AppProvider, useApp } from '@/context/AppContext';
 import Header from '@/components/Header';
 import SettingsModal from '@/components/modals/SettingsModal';
 import DayModal from '@/components/modals/DayModal';
-import { ResetModal, AlertModalComponent, Toast, ProcessingOverlay } from '@/components/modals/SharedModals';
+import { ResetModal, AlertModalComponent, Toast, ProcessingOverlay, NotificationToast } from '@/components/modals/SharedModals';
+import { useNotifications } from '@/hooks/useNotifications';
 
 function LayoutInner({ children }: { children: React.ReactNode }) {
   const state = useApp();
+  const notifs = useNotifications({ prayerTimes: state.prayerTimes, todayLogs: state.todayLogs });
 
   return (
     <div className="flex flex-col min-h-screen max-h-screen overflow-hidden">
@@ -26,6 +28,15 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
         setSettingsModalOpen={state.setSettingsModalOpen}
         setResetModalOpen={state.setResetModalOpen}
         importData={state.importData}
+        notifications={notifs.notifications}
+        unreadCount={notifs.unreadCount}
+        notificationsEnabled={notifs.notificationsEnabled}
+        markAllRead={notifs.markAllRead}
+        clearNotifications={notifs.clearNotifications}
+        dismissNotification={notifs.dismissNotification}
+        sendTestNotification={notifs.sendTestNotification}
+        enableNotifications={notifs.enableNotifications}
+        disableNotifications={notifs.disableNotifications}
       />
 
       <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8">
@@ -67,6 +78,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
       />
 
       <Toast toast={state.toast} />
+      <NotificationToast notification={notifs.notificationToast} onDismiss={() => notifs.setNotificationToast(null)} />
 
       <ProcessingOverlay
         isProcessing={state.isProcessing}

@@ -1,7 +1,8 @@
 'use client';
 
-import { AlertTriangle, X, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { AlertTriangle, X, CheckCircle2, XCircle, Loader2, Bell, Sunrise, Sun, CloudSun, Sunset, Moon, Sparkles } from 'lucide-react';
 import type { AlertModalState, ToastState } from '@/lib/utils';
+import type { AppNotification } from '@/hooks/useNotifications';
 
 // Reset Confirmation Modal
 export function ResetModal({ open, onClose, onConfirm }: {
@@ -89,3 +90,42 @@ export function ProcessingOverlay({ isProcessing, title, message }: {
     </div>
   );
 }
+
+// Notification Toast (prayer reminders)
+const notifIconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  Fajr: Sunrise, Dhuhr: Sun, Asr: CloudSun, Maghrib: Sunset, Isha: Moon, system: Sparkles,
+};
+
+export function NotificationToast({ notification, onDismiss }: {
+  notification: AppNotification | null;
+  onDismiss: () => void;
+}) {
+  if (!notification) return null;
+  const NIcon = notifIconMap[notification.icon] || Bell;
+
+  return (
+    <div className="fixed bottom-6 right-6 z-[998] animate-slide-up max-w-sm w-full pointer-events-auto">
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-zinc-800 overflow-hidden">
+        <div className="flex items-start gap-3 p-4">
+          <div className="w-10 h-10 rounded-xl bg-[#f0f4f1] dark:bg-zinc-800 flex items-center justify-center text-[#3a5245] dark:text-emerald-400 shrink-0 mt-0.5">
+            <NIcon className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h4 className="font-bold text-sm text-gray-900 dark:text-white leading-tight">{notification.title}</h4>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">{notification.body}</p>
+          </div>
+          <button
+            onClick={onDismiss}
+            className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors shrink-0"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="h-[3px] bg-[#3a5245]/20 dark:bg-emerald-500/20 relative overflow-hidden">
+          <div className="absolute inset-0 bg-[#3a5245] dark:bg-emerald-500 animate-shrink-width" />
+        </div>
+      </div>
+    </div>
+  );
+}
+

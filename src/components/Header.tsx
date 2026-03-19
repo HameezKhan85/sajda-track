@@ -5,8 +5,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, CalendarDays, Layers, Moon, Sun, DownloadCloud, MapPin,
-  User, Upload, Download, Trash2, Menu, ChevronDown,
+  User, Upload, Download, Trash2, Menu, ChevronDown, Bell, BellOff,
+  Sunrise, CloudSun, Sunset, Sparkles, X, Check, CheckCheck, Send,
 } from 'lucide-react';
+import type { AppNotification } from '@/hooks/useNotifications';
 
 const NAV_ITEMS = [
   { id: '/', label: 'Dashboard', icon: 'layout-dashboard' },
@@ -29,6 +31,16 @@ interface HeaderProps {
   setSettingsModalOpen: (v: boolean) => void;
   setResetModalOpen: (v: boolean) => void;
   importData: (file: File) => void;
+  // Notifications
+  notifications: AppNotification[];
+  unreadCount: number;
+  notificationsEnabled: boolean;
+  markAllRead: () => void;
+  clearNotifications: () => void;
+  dismissNotification: (id: string) => void;
+  sendTestNotification: () => void;
+  enableNotifications: () => Promise<boolean>;
+  disableNotifications: () => void;
 }
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -37,12 +49,19 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   'layers': Layers,
 };
 
+const notifPrayericons: Record<string, React.ComponentType<{ className?: string }>> = {
+  Fajr: Sunrise, Dhuhr: Sun, Asr: CloudSun, Maghrib: Sunset, Isha: Moon, system: Sparkles,
+};
+
 export default function Header({
   isDark, toggleTheme,
   currentTime, currentDateStr,
   mobileMenuOpen, setMobileMenuOpen,
   deferredPrompt, isStandalone, installPWA,
   setSettingsModalOpen, setResetModalOpen, importData,
+  notifications, unreadCount, notificationsEnabled,
+  markAllRead, clearNotifications, dismissNotification,
+  sendTestNotification, enableNotifications, disableNotifications,
 }: HeaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pathname = usePathname();
@@ -102,6 +121,19 @@ export default function Header({
           <button onClick={() => setSettingsModalOpen(true)} className="p-2 text-gray-400 hover:text-sage-600 transition-colors relative" title="Prayer Settings">
             <MapPin className="w-5 h-5" />
           </button>
+
+          {/* Notifications Dropdown */}
+          <NotificationDropdown
+            notifications={notifications}
+            unreadCount={unreadCount}
+            notificationsEnabled={notificationsEnabled}
+            markAllRead={markAllRead}
+            clearNotifications={clearNotifications}
+            dismissNotification={dismissNotification}
+            sendTestNotification={sendTestNotification}
+            enableNotifications={enableNotifications}
+            disableNotifications={disableNotifications}
+          />
 
           {/* Profile Dropdown */}
           <ProfileDropdown
@@ -168,6 +200,20 @@ export default function Header({
               <MapPin className="w-5 h-5" />
               <span>Location Settings</span>
             </button>
+
+            {/* Mobile Notifications */}
+            <MobileNotificationSection
+              notifications={notifications}
+              unreadCount={unreadCount}
+              notificationsEnabled={notificationsEnabled}
+              markAllRead={markAllRead}
+              clearNotifications={clearNotifications}
+              sendTestNotification={sendTestNotification}
+              enableNotifications={enableNotifications}
+              disableNotifications={disableNotifications}
+              setMobileMenuOpen={setMobileMenuOpen}
+            />
+
             <MobileProfileSection fileInputRef={fileInputRef} setMobileMenuOpen={setMobileMenuOpen} setResetModalOpen={setResetModalOpen} />
           </div>
         </div>
@@ -176,6 +222,142 @@ export default function Header({
   );
 }
 
+// ─── Notification Dropdown (Desktop) ───
+function NotificationDropdown({
+  notifications, unreadCount, notificationsEnabled,
+  markAllRead, clearNotifications, dismissNotification,
+  sendTestNotification, enableNotifications, disableNotifications,
+}: {
+  notifications: AppNotification[];
+  unreadCount: number;
+  notificationsEnabled: boolean;
+  markAllRead: () => void;
+  clearNotifications: () => void;
+  dismissNotification: (id: string) => void;
+  sendTestNotification: () => void;
+  enableNotifications: () => Promise<boolean>;
+  disableNotifications: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  function timeAgo(ts: number): string {
+    const diff = Date.now() - ts;
+    if (diff < 60000) return 'Just now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+    return `${Math.floor(diff / 86400000)}d ago`;
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="p-2 text-gray-400 hover:text-sage-600 transition-colors relative"
+        title="Notifications"
+      >
+        <Bell className="w-5 h-5" />
+        {unreadCount > 0 && (
+          <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white dark:ring-zinc-900 animate-pulse" />
+        )}
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-zinc-800 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-black/50 border border-gray-100 dark:border-zinc-700 z-50 overflow-hidden flex flex-col max-h-[420px]">
+            {/* Header */}
+            <div className="px-4 py-3 border-b border-gray-100 dark:border-zinc-700 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">Notifications</h3>
+                {unreadCount > 0 && (
+                  <span className="text-[10px] font-bold bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded-full">{unreadCount}</span>
+                )}
+              </div>
+              <div className="flex items-center gap-1">
+                {notificationsEnabled ? (
+                  <button onClick={disableNotifications} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20" title="Disable Notifications">
+                    <BellOff className="w-3.5 h-3.5" />
+                  </button>
+                ) : (
+                  <button onClick={enableNotifications} className="p-1.5 text-gray-400 hover:text-emerald-500 transition-colors rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20" title="Enable Notifications">
+                    <Bell className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                {unreadCount > 0 && (
+                  <button onClick={markAllRead} className="p-1.5 text-gray-400 hover:text-sage-600 transition-colors rounded-lg hover:bg-sage-50 dark:hover:bg-sage-900/20" title="Mark all read">
+                    <CheckCheck className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Notification List */}
+            <div className="overflow-y-auto flex-1">
+              {notifications.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 px-4">
+                  <div className="w-12 h-12 rounded-2xl bg-gray-50 dark:bg-zinc-700 flex items-center justify-center text-gray-300 dark:text-zinc-500 mb-3">
+                    <Bell className="w-6 h-6" />
+                  </div>
+                  <p className="text-xs font-medium text-gray-400 dark:text-zinc-500">No notifications yet</p>
+                  <p className="text-[10px] text-gray-300 dark:text-zinc-600 mt-1">Prayer reminders will appear here</p>
+                </div>
+              ) : (
+                notifications.map(n => {
+                  const NIcon = notifPrayericons[n.icon] || Bell;
+                  return (
+                    <div
+                      key={n.id}
+                      className={`flex items-start gap-3 px-4 py-3 border-b border-gray-50 dark:border-zinc-700/50 hover:bg-gray-50 dark:hover:bg-zinc-700/30 transition-colors ${
+                        !n.read ? 'bg-sage-50/50 dark:bg-sage-900/10' : ''
+                      }`}
+                    >
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                        !n.read
+                          ? 'bg-[#f0f4f1] dark:bg-emerald-900/30 text-[#3a5245] dark:text-emerald-400'
+                          : 'bg-gray-100 dark:bg-zinc-700 text-gray-400 dark:text-zinc-500'
+                      }`}>
+                        <NIcon className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-xs font-semibold leading-tight ${!n.read ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>{n.title}</p>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed line-clamp-2">{n.body}</p>
+                        <p className="text-[9px] text-gray-400 dark:text-zinc-500 mt-1 uppercase tracking-wide font-medium">{timeAgo(n.timestamp)}</p>
+                      </div>
+                      <button onClick={() => dismissNotification(n.id)} className="p-1 text-gray-300 dark:text-zinc-600 hover:text-red-400 transition-colors shrink-0 mt-0.5">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-3 py-2 border-t border-gray-100 dark:border-zinc-700 flex items-center gap-2 shrink-0">
+              {/* Test Button (TEMPORARY) */}
+              <button
+                onClick={() => { sendTestNotification(); }}
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-bold text-[#3a5245] dark:text-emerald-400 bg-[#f0f4f1] dark:bg-zinc-700 hover:bg-[#e4ece7] dark:hover:bg-zinc-600 rounded-xl transition-colors"
+              >
+                <Send className="w-3 h-3" /> Test Notification
+              </button>
+              {notifications.length > 0 && (
+                <button
+                  onClick={clearNotifications}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-bold text-red-500 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-xl transition-colors"
+                >
+                  <Trash2 className="w-3 h-3" /> Clear
+                </button>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─── Profile Dropdown (Desktop) ───
 function ProfileDropdown({ fileInputRef, importData, setResetModalOpen }: {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   importData: (file: File) => void;
@@ -228,6 +410,81 @@ function ProfileDropdown({ fileInputRef, importData, setResetModalOpen }: {
   );
 }
 
+// ─── Mobile Notification Section ───
+function MobileNotificationSection({
+  notifications, unreadCount, notificationsEnabled,
+  markAllRead, clearNotifications, sendTestNotification,
+  enableNotifications, disableNotifications, setMobileMenuOpen,
+}: {
+  notifications: AppNotification[];
+  unreadCount: number;
+  notificationsEnabled: boolean;
+  markAllRead: () => void;
+  clearNotifications: () => void;
+  sendTestNotification: () => void;
+  enableNotifications: () => Promise<boolean>;
+  disableNotifications: () => void;
+  setMobileMenuOpen: (v: boolean) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="flex flex-col gap-1">
+      <button onClick={() => setOpen(!open)} className="flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 font-medium text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800 w-full">
+        <div className="flex items-center gap-3">
+          <Bell className="w-5 h-5" />
+          <span>Notifications</span>
+          {unreadCount > 0 && (
+            <span className="text-[10px] font-bold bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded-full">{unreadCount}</span>
+          )}
+        </div>
+        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="flex flex-col gap-1 pl-4">
+          {/* Toggle */}
+          <button
+            onClick={() => { notificationsEnabled ? disableNotifications() : enableNotifications(); }}
+            className="flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 font-medium text-sm gap-3 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800"
+          >
+            {notificationsEnabled ? <BellOff className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
+            <span>{notificationsEnabled ? 'Disable Notifications' : 'Enable Notifications'}</span>
+          </button>
+
+          {/* Test */}
+          <button
+            onClick={() => { sendTestNotification(); setMobileMenuOpen(false); }}
+            className="flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 font-medium text-sm gap-3 text-gray-500 dark:text-gray-400 hover:bg-sage-50 hover:text-sage-600 dark:hover:bg-zinc-800"
+          >
+            <Send className="w-4 h-4" /> <span>Test Notification</span>
+          </button>
+
+          {/* Mark read */}
+          {unreadCount > 0 && (
+            <button
+              onClick={markAllRead}
+              className="flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 font-medium text-sm gap-3 text-gray-500 dark:text-gray-400 hover:bg-sage-50 hover:text-sage-600 dark:hover:bg-zinc-800"
+            >
+              <Check className="w-4 h-4" /> <span>Mark All Read</span>
+            </button>
+          )}
+
+          {/* Clear */}
+          {notifications.length > 0 && (
+            <button
+              onClick={() => { clearNotifications(); }}
+              className="flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 font-medium text-sm gap-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 dark:text-red-400"
+            >
+              <Trash2 className="w-4 h-4" /> <span>Clear All</span>
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Mobile Profile Section ───
 function MobileProfileSection({ fileInputRef, setMobileMenuOpen, setResetModalOpen }: {
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   setMobileMenuOpen: (v: boolean) => void;
