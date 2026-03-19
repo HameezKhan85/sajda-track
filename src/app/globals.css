@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+/* Override Tailwind v4 dark mode to use class strategy instead of prefers-color-scheme */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Sage color palette */
+  --color-sage-50: #f0f4f1;
+  --color-sage-100: #d6e4db;
+  --color-sage-200: #b8d1c0;
+  --color-sage-300: #92b8a0;
+  --color-sage-400: #6f9e80;
+  --color-sage-500: #4d8460;
+  --color-sage-600: #3a5245;
+  --color-sage-700: #2b3d33;
+  --color-sage-800: #1c2922;
+  --color-sage-900: #0d1411;
+
+  /* Font family */
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+
+  /* Custom animations */
+  --animate-slide-up: slide-up 0.3s ease-out;
+  --animate-shrink-width: shrink-width 3.5s linear forwards;
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shrink-width {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+@keyframes bounce-short {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes ping-short {
+  0% { transform: scale(1); opacity: 1; }
+  75%, 100% { transform: scale(1.5); opacity: 0; }
+}
+
+@keyframes button-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+/* PWA standalone mode */
+@media (display-mode: standalone), (display-mode: minimal-ui), (display-mode: window-controls-overlay) {
+  .hide-in-pwa {
+    display: none !important;
+  }
+}
+
+/* Smooth scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c4c4c4;
+  border-radius: 10px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+}
+
+/* Number input: hide spinner */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
