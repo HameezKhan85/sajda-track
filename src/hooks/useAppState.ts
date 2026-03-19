@@ -508,11 +508,12 @@ export function useAppState() {
 
     const geoFallback = async () => {
       try {
-        const res = await fetch('http://ip-api.com/json/');
+        // Changed to ipwho.is because it supports HTTPS for free (preventing Mixed Content blockers on Netlify)
+        const res = await fetch('https://ipwho.is/');
         const data = await res.json();
-        if (data.status === 'success' && data.lat && data.lon) {
-          setSettingsLat(String(data.lat));
-          setSettingsLng(String(data.lon));
+        if (data.success && data.latitude && data.longitude) {
+          setSettingsLat(String(data.latitude));
+          setSettingsLng(String(data.longitude));
           const city = data.city || '';
           const country = data.country || '';
           if (city && country) setDetectedLocationName(`${city}, ${country}`);
@@ -553,7 +554,7 @@ export function useAppState() {
         setGeoStatus('success');
       },
       () => geoFallback(),
-      { timeout: 6000, enableHighAccuracy: false, maximumAge: 60000 }
+      { timeout: 15000, enableHighAccuracy: false, maximumAge: 300000 }
     );
   }, []);
 
