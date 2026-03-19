@@ -386,68 +386,98 @@ function ProfileDropdown({ fileInputRef, exportData, setResetModalOpen, driveCon
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-zinc-800 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-black/50 border border-gray-100 dark:border-zinc-700 py-2 z-50 overflow-hidden">
-            <div className="px-4 py-2 mb-1 border-b border-gray-100 dark:border-zinc-700">
-              <p className="text-xs font-bold text-gray-800 dark:text-gray-200">Hameez Khan</p>
-              <p className="text-[10px] text-gray-500">Premium User</p>
+          <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-zinc-900 rounded-2xl shadow-xl shadow-gray-200/50 dark:shadow-black/50 border border-gray-100 dark:border-zinc-800 py-1 z-50 overflow-hidden text-sm">
+            
+            <div className="px-5 py-3 border-b border-gray-100 dark:border-zinc-800">
+              <p className="font-bold text-gray-900 dark:text-white leading-none">Profile</p>
+              <p className="text-xs text-sage-600 dark:text-sage-500 font-medium mt-1">Sajda Local User</p>
             </div>
 
-            {/* Google Drive Section */}
-            <div className="px-4 py-2 border-b border-gray-100 dark:border-zinc-700">
-              <p className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-1.5">Google Drive</p>
-              {driveConnected ? (
-                <>
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <Cloud className="w-3.5 h-3.5 text-emerald-500" />
-                    <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">Connected</span>
-                  </div>
-                  <p className="text-[9px] text-gray-400 dark:text-zinc-500 mb-2">Last sync: {formatSyncTime(lastSyncTime)}</p>
-                  <div className="flex gap-1.5">
+            <div className="py-2">
+              <p className="px-5 text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider mb-2">Data & Sync</p>
+              
+              {/* Drive Card */}
+              <div className="px-3 mb-2">
+                <div className="bg-gray-50 dark:bg-zinc-800/50 rounded-xl p-3 border border-gray-100 dark:border-zinc-700/50">
+                  {driveConnected ? (
+                    <>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-1.5">
+                          <Cloud className="w-4 h-4 text-emerald-500" />
+                          <span className="text-xs font-bold text-gray-700 dark:text-gray-200">Google Drive</span>
+                        </div>
+                        <button
+                          onClick={() => { disconnectDrive(); setOpen(false); }}
+                          className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20"
+                          title="Disconnect"
+                        >
+                          <CloudOff className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-2.5">
+                        Last sync: <span className="font-medium text-gray-700 dark:text-gray-300">{formatSyncTime(lastSyncTime)}</span>
+                      </p>
+                      <button
+                        onClick={() => { syncDrive(); }}
+                        disabled={driveSyncing}
+                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-white bg-sage-600 hover:bg-sage-700 dark:bg-sage-500 dark:hover:bg-sage-600 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        {driveSyncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                        {driveSyncing ? 'Syncing...' : 'Sync Now'}
+                      </button>
+                    </>
+                  ) : (
                     <button
-                      onClick={() => { syncDrive(); }}
-                      disabled={driveSyncing}
-                      className="flex-1 flex items-center justify-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-[#3a5245] dark:text-emerald-400 bg-[#f0f4f1] dark:bg-zinc-700 hover:bg-[#e4ece7] dark:hover:bg-zinc-600 rounded-lg transition-colors disabled:opacity-50"
+                      onClick={() => { connectDrive(); }}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-600 border border-gray-200 dark:border-zinc-600 rounded-lg transition-colors shadow-sm"
                     >
-                      {driveSyncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                      {driveSyncing ? 'Syncing...' : 'Sync Now'}
+                      <Cloud className="w-4 h-4 text-blue-500" /> Connect Drive
                     </button>
-                    <button
-                      onClick={() => { disconnectDrive(); setOpen(false); }}
-                      className="flex items-center justify-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-red-500 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                    >
-                      <CloudOff className="w-3 h-3" />
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <button
-                  onClick={() => { connectDrive(); }}
-                  className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-bold text-[#3a5245] dark:text-emerald-400 bg-[#f0f4f1] dark:bg-zinc-700 hover:bg-[#e4ece7] dark:hover:bg-zinc-600 rounded-lg transition-colors"
-                >
-                  <Cloud className="w-3.5 h-3.5" /> Connect Google Drive
-                </button>
-              )}
+                  )}
+                </div>
+              </div>
+
+              {/* Import/Export */}
+              <button
+                onClick={() => { fileInputRef.current?.click(); setOpen(false); }}
+                className="w-full text-left px-5 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800/50 text-gray-700 dark:text-gray-300 transition-colors flex items-center gap-3"
+              >
+                <div className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 border border-gray-200 dark:border-zinc-700">
+                  <Upload className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-xs leading-tight">Import CSV</p>
+                  <p className="text-[10px] text-gray-400 dark:text-zinc-500">Restore from local file</p>
+                </div>
+              </button>
+              
+              <button
+                onClick={() => { exportData(); setOpen(false); }}
+                className="w-full text-left px-5 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800/50 text-gray-700 dark:text-gray-300 transition-colors flex items-center gap-3"
+              >
+                <div className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 border border-gray-200 dark:border-zinc-700">
+                  <Download className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-xs leading-tight">Export CSV</p>
+                  <p className="text-[10px] text-gray-400 dark:text-zinc-500">Save backup to device</p>
+                </div>
+              </button>
             </div>
 
-            <button
-              onClick={() => { fileInputRef.current?.click(); setOpen(false); }}
-              className="w-full text-left px-4 py-2.5 text-sm hover:bg-sage-50 dark:hover:bg-sage-900/20 text-gray-700 dark:text-gray-300 hover:text-sage-600 dark:hover:text-sage-400 transition-colors flex items-center gap-2"
-            >
-              <Upload className="w-4 h-4" /> Import Data
-            </button>
-            <button
-              onClick={() => { exportData(); setOpen(false); }}
-              className="w-full text-left px-4 py-2.5 text-sm hover:bg-sage-50 dark:hover:bg-sage-900/20 text-gray-700 dark:text-gray-300 hover:text-sage-600 dark:hover:text-sage-400 transition-colors flex items-center gap-2"
-            >
-              <Download className="w-4 h-4" /> Export Data
-            </button>
-            <div className="border-t border-gray-100 dark:border-zinc-700 my-1" />
-            <button
-              onClick={() => { setResetModalOpen(true); setOpen(false); }}
-              className="w-full text-left px-4 py-2.5 text-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 transition-colors flex items-center gap-2"
-            >
-              <Trash2 className="w-4 h-4" /> Reset Data
-            </button>
+            <div className="border-t border-gray-100 dark:border-zinc-800" />
+            
+            <div className="py-1">
+              <button
+                onClick={() => { setResetModalOpen(true); setOpen(false); }}
+                className="w-full text-left px-5 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors flex items-center gap-3"
+              >
+                <div className="w-7 h-7 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center shrink-0 border border-red-100 dark:border-red-900/30">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </div>
+                <span className="font-medium text-xs">Reset All Data</span>
+              </button>
+            </div>
           </div>
         </>
       )}
@@ -534,41 +564,60 @@ function MobileProfileSection({ fileInputRef, setMobileMenuOpen, setResetModalOp
         <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="flex flex-col gap-1 pl-4">
-          {/* Drive */}
-          {driveConnected ? (
-            <>
+        <div className="flex flex-col gap-3 pl-4 py-1 pr-2">
+          
+          <div className="bg-gray-50 dark:bg-zinc-800/40 rounded-2xl p-3 border border-gray-100 dark:border-zinc-700/50 flex flex-col gap-3">
+            <p className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider text-center">Data & Sync</p>
+            
+            {/* Drive */}
+            {driveConnected ? (
+              <div className="bg-white dark:bg-zinc-800 rounded-xl p-3 border border-gray-200 dark:border-zinc-700/80 shadow-sm flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                   <div className="flex items-center gap-2">
+                     <Cloud className="w-4 h-4 text-emerald-500" />
+                     <span className="text-xs font-bold text-gray-700 dark:text-gray-200">Google Drive</span>
+                   </div>
+                   <button onClick={() => { disconnectDrive(); setMobileMenuOpen(false); }} className="text-gray-400 hover:text-red-500 p-1.5 bg-gray-50 dark:bg-zinc-700 rounded-full transition-colors">
+                     <CloudOff className="w-3.5 h-3.5" />
+                   </button>
+                </div>
+                <button
+                  onClick={() => { syncDrive(); }}
+                  disabled={driveSyncing}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-bold text-white bg-sage-600 hover:bg-sage-700 rounded-xl transition-colors disabled:opacity-50"
+                >
+                  {driveSyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                  <span>{driveSyncing ? 'Syncing...' : 'Sync Now'}</span>
+                </button>
+              </div>
+            ) : (
               <button
-                onClick={() => { syncDrive(); }}
-                disabled={driveSyncing}
-                className="flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 font-medium text-sm gap-3 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/10 disabled:opacity-50"
+                onClick={() => { connectDrive(); setMobileMenuOpen(false); }}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-zinc-700 hover:bg-gray-50 dark:hover:bg-zinc-600 border border-gray-200 dark:border-zinc-600 rounded-xl transition-colors shadow-sm"
               >
-                {driveSyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                <span>{driveSyncing ? 'Syncing...' : 'Sync to Drive'}</span>
+                <Cloud className="w-5 h-5 text-blue-500" /> <span>Connect Drive</span>
               </button>
-              <button
-                onClick={() => { disconnectDrive(); setMobileMenuOpen(false); }}
-                className="flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 font-medium text-sm gap-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 dark:text-red-400"
-              >
-                <CloudOff className="w-4 h-4" /> <span>Disconnect Drive</span>
+            )}
+
+            <div className="grid grid-cols-2 gap-2 mt-1">
+              <button onClick={() => { fileInputRef.current?.click(); setMobileMenuOpen(false); }} className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-white dark:bg-zinc-800 hover:bg-gray-100 dark:hover:bg-zinc-700 border border-gray-200 dark:border-zinc-700 transition-colors shadow-sm">
+                <div className="bg-gray-50 dark:bg-zinc-700 p-2 rounded-lg">
+                  <Upload className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                </div>
+                <span className="text-xs font-bold text-gray-700 dark:text-gray-200">Import CSV</span>
               </button>
-            </>
-          ) : (
-            <button
-              onClick={() => { connectDrive(); setMobileMenuOpen(false); }}
-              className="flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 font-medium text-sm gap-3 text-gray-500 dark:text-gray-400 hover:bg-sage-50 hover:text-sage-600 dark:hover:bg-zinc-800"
-            >
-              <Cloud className="w-4 h-4" /> <span>Connect Google Drive</span>
-            </button>
-          )}
-          <button onClick={() => { fileInputRef.current?.click(); setMobileMenuOpen(false); }} className="flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 font-medium text-sm gap-3 text-gray-500 dark:text-gray-400 hover:bg-sage-50 hover:text-sage-600 dark:hover:bg-zinc-800">
-            <Upload className="w-4 h-4" /> <span>Import Data</span>
-          </button>
-          <button onClick={() => { exportData(); setMobileMenuOpen(false); }} className="flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 font-medium text-sm gap-3 text-gray-500 dark:text-gray-400 hover:bg-sage-50 hover:text-sage-600 dark:hover:bg-zinc-800">
-            <Download className="w-4 h-4" /> <span>Export Data</span>
-          </button>
-          <button onClick={() => { setResetModalOpen(true); setMobileMenuOpen(false); }} className="flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 font-medium text-sm gap-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 dark:text-red-400">
-            <Trash2 className="w-4 h-4" /> <span>Reset Data</span>
+              <button onClick={() => { exportData(); setMobileMenuOpen(false); }} className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-white dark:bg-zinc-800 hover:bg-gray-100 dark:hover:bg-zinc-700 border border-gray-200 dark:border-zinc-700 transition-colors shadow-sm">
+                <div className="bg-gray-50 dark:bg-zinc-700 p-2 rounded-lg">
+                  <Download className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                </div>
+                <span className="text-xs font-bold text-gray-700 dark:text-gray-200">Export CSV</span>
+              </button>
+            </div>
+            
+          </div>
+
+          <button onClick={() => { setResetModalOpen(true); setMobileMenuOpen(false); }} className="flex items-center justify-center px-4 py-3 rounded-xl transition-all duration-200 text-sm font-bold gap-2 text-red-600 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 w-full mb-2 border border-red-100 dark:border-red-900/30">
+            <Trash2 className="w-4 h-4" /> <span>Reset All Data</span>
           </button>
         </div>
       )}
