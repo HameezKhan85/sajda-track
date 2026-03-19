@@ -31,16 +31,11 @@ interface HeaderProps {
   setSettingsModalOpen: (v: boolean) => void;
   setResetModalOpen: (v: boolean) => void;
   importData: (file: File) => void;
-  // Notifications
   notifications: AppNotification[];
   unreadCount: number;
-  notificationsEnabled: boolean;
   markAllRead: () => void;
   clearNotifications: () => void;
   dismissNotification: (id: string) => void;
-  sendTestNotification: () => void;
-  enableNotifications: () => Promise<boolean>;
-  disableNotifications: () => void;
 }
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -59,9 +54,8 @@ export default function Header({
   mobileMenuOpen, setMobileMenuOpen,
   deferredPrompt, isStandalone, installPWA,
   setSettingsModalOpen, setResetModalOpen, importData,
-  notifications, unreadCount, notificationsEnabled,
+  notifications, unreadCount,
   markAllRead, clearNotifications, dismissNotification,
-  sendTestNotification, enableNotifications, disableNotifications,
 }: HeaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pathname = usePathname();
@@ -126,13 +120,9 @@ export default function Header({
           <NotificationDropdown
             notifications={notifications}
             unreadCount={unreadCount}
-            notificationsEnabled={notificationsEnabled}
             markAllRead={markAllRead}
             clearNotifications={clearNotifications}
             dismissNotification={dismissNotification}
-            sendTestNotification={sendTestNotification}
-            enableNotifications={enableNotifications}
-            disableNotifications={disableNotifications}
           />
 
           {/* Profile Dropdown */}
@@ -205,12 +195,8 @@ export default function Header({
             <MobileNotificationSection
               notifications={notifications}
               unreadCount={unreadCount}
-              notificationsEnabled={notificationsEnabled}
               markAllRead={markAllRead}
               clearNotifications={clearNotifications}
-              sendTestNotification={sendTestNotification}
-              enableNotifications={enableNotifications}
-              disableNotifications={disableNotifications}
               setMobileMenuOpen={setMobileMenuOpen}
             />
 
@@ -224,19 +210,14 @@ export default function Header({
 
 // ─── Notification Dropdown (Desktop) ───
 function NotificationDropdown({
-  notifications, unreadCount, notificationsEnabled,
+  notifications, unreadCount,
   markAllRead, clearNotifications, dismissNotification,
-  sendTestNotification, enableNotifications, disableNotifications,
 }: {
   notifications: AppNotification[];
   unreadCount: number;
-  notificationsEnabled: boolean;
   markAllRead: () => void;
   clearNotifications: () => void;
   dismissNotification: (id: string) => void;
-  sendTestNotification: () => void;
-  enableNotifications: () => Promise<boolean>;
-  disableNotifications: () => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -274,15 +255,7 @@ function NotificationDropdown({
                 )}
               </div>
               <div className="flex items-center gap-1">
-                {notificationsEnabled ? (
-                  <button onClick={disableNotifications} className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20" title="Disable Notifications">
-                    <BellOff className="w-3.5 h-3.5" />
-                  </button>
-                ) : (
-                  <button onClick={enableNotifications} className="p-1.5 text-gray-400 hover:text-emerald-500 transition-colors rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20" title="Enable Notifications">
-                    <Bell className="w-3.5 h-3.5" />
-                  </button>
-                )}
+
                 {unreadCount > 0 && (
                   <button onClick={markAllRead} className="p-1.5 text-gray-400 hover:text-sage-600 transition-colors rounded-lg hover:bg-sage-50 dark:hover:bg-sage-900/20" title="Mark all read">
                     <CheckCheck className="w-3.5 h-3.5" />
@@ -334,13 +307,7 @@ function NotificationDropdown({
 
             {/* Footer */}
             <div className="px-3 py-2 border-t border-gray-100 dark:border-zinc-700 flex items-center gap-2 shrink-0">
-              {/* Test Button (TEMPORARY) */}
-              <button
-                onClick={() => { sendTestNotification(); }}
-                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-[11px] font-bold text-[#3a5245] dark:text-emerald-400 bg-[#f0f4f1] dark:bg-zinc-700 hover:bg-[#e4ece7] dark:hover:bg-zinc-600 rounded-xl transition-colors"
-              >
-                <Send className="w-3 h-3" /> Test Notification
-              </button>
+
               {notifications.length > 0 && (
                 <button
                   onClick={clearNotifications}
@@ -412,18 +379,13 @@ function ProfileDropdown({ fileInputRef, importData, setResetModalOpen }: {
 
 // ─── Mobile Notification Section ───
 function MobileNotificationSection({
-  notifications, unreadCount, notificationsEnabled,
-  markAllRead, clearNotifications, sendTestNotification,
-  enableNotifications, disableNotifications, setMobileMenuOpen,
+  notifications, unreadCount,
+  markAllRead, clearNotifications, setMobileMenuOpen,
 }: {
   notifications: AppNotification[];
   unreadCount: number;
-  notificationsEnabled: boolean;
   markAllRead: () => void;
   clearNotifications: () => void;
-  sendTestNotification: () => void;
-  enableNotifications: () => Promise<boolean>;
-  disableNotifications: () => void;
   setMobileMenuOpen: (v: boolean) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -442,22 +404,7 @@ function MobileNotificationSection({
       </button>
       {open && (
         <div className="flex flex-col gap-1 pl-4">
-          {/* Toggle */}
-          <button
-            onClick={() => { notificationsEnabled ? disableNotifications() : enableNotifications(); }}
-            className="flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 font-medium text-sm gap-3 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800"
-          >
-            {notificationsEnabled ? <BellOff className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
-            <span>{notificationsEnabled ? 'Disable Notifications' : 'Enable Notifications'}</span>
-          </button>
 
-          {/* Test */}
-          <button
-            onClick={() => { sendTestNotification(); setMobileMenuOpen(false); }}
-            className="flex items-center px-4 py-2.5 rounded-xl transition-all duration-200 font-medium text-sm gap-3 text-gray-500 dark:text-gray-400 hover:bg-sage-50 hover:text-sage-600 dark:hover:bg-zinc-800"
-          >
-            <Send className="w-4 h-4" /> <span>Test Notification</span>
-          </button>
 
           {/* Mark read */}
           {unreadCount > 0 && (

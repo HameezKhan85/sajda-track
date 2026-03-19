@@ -72,7 +72,7 @@ export function useNotifications({ prayerTimes, todayLogs }: UseNotificationsPro
 
     // Show in-app toast
     setNotificationToast(notif);
-    setTimeout(() => setNotificationToast(null), 5000);
+    setTimeout(() => setNotificationToast(null), 10000);
 
     // Send PWA / browser notification
     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
@@ -144,23 +144,6 @@ export function useNotifications({ prayerTimes, todayLogs }: UseNotificationsPro
     setNotifications(prev => prev.filter(n => n.id !== id));
   }, []);
 
-  // ─── Send Test Notification ───
-  const sendTestNotification = useCallback(() => {
-    // Request permission if not already granted
-    if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
-      Notification.requestPermission().then(perm => {
-        if (perm === 'granted') {
-          setNotificationsEnabled(true);
-          localStorage.setItem(PERM_KEY, 'true');
-        }
-      });
-    }
-    addNotification(
-      '🧪 Test Notification',
-      'If you see this, notifications are working! Alhamdulillah.',
-      'system'
-    );
-  }, [addNotification]);
 
   // ─── Schedule prayer time notifications ───
   useEffect(() => {
@@ -245,7 +228,6 @@ export function useNotifications({ prayerTimes, todayLogs }: UseNotificationsPro
     markAllRead,
     clearNotifications,
     dismissNotification,
-    sendTestNotification,
     enableNotifications,
     disableNotifications,
     requestPermission,

@@ -30,13 +30,9 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
         importData={state.importData}
         notifications={notifs.notifications}
         unreadCount={notifs.unreadCount}
-        notificationsEnabled={notifs.notificationsEnabled}
         markAllRead={notifs.markAllRead}
         clearNotifications={notifs.clearNotifications}
         dismissNotification={notifs.dismissNotification}
-        sendTestNotification={notifs.sendTestNotification}
-        enableNotifications={notifs.enableNotifications}
-        disableNotifications={notifs.disableNotifications}
       />
 
       <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 lg:p-8">
