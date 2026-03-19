@@ -608,11 +608,25 @@ export function useAppState() {
     const token = await drive.signIn();
     if (token) {
       setDriveConnected(true);
-      showToast('Google Drive connected!');
+      showToast('Google Drive connected! Syncing...');
+      // Auto-sync on first connect
+      setDriveSyncing(true);
+      const result = await drive.syncToCloud();
+      setDriveSyncing(false);
+      if (result.success) {
+        setLastSyncTime(drive.getLastSyncTime());
+        showToast('Synced successfully!');
+        fetchData();
+        fetchQaza();
+        generateLast7Days();
+        generateCalendar();
+      } else {
+        showToast(result.error || 'Sync failed after connect.', 'error');
+      }
     } else {
       showToast('Failed to connect Google Drive.', 'error');
     }
-  }, [showToast]);
+  }, [showToast, fetchData, fetchQaza, generateLast7Days, generateCalendar]);
 
   const disconnectDrive = useCallback(() => {
     drive.signOut();
