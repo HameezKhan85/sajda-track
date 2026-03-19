@@ -507,8 +507,26 @@ export function useAppState() {
     setDetectedLocationName('');
 
     const geoFallback = async () => {
+      // Best chance against adblockers: geojs.io
       try {
-        // Changed to ipwho.is because it supports HTTPS for free (preventing Mixed Content blockers on Netlify)
+        const res = await fetch('https://get.geojs.io/v1/ip/geo.json');
+        const data = await res.json();
+        if (data.latitude && data.longitude) {
+          setSettingsLat(String(data.latitude));
+          setSettingsLng(String(data.longitude));
+          const city = data.city || '';
+          const country = data.country || '';
+          if (city && country) setDetectedLocationName(`${city}, ${country}`);
+          setLocationSource('ip');
+          setGeoStatus('success');
+          return;
+        }
+      } catch (e) {
+        console.warn('GeoJS failed, trying ipwho.is...', e);
+      }
+
+      // Second fallback: ipwho.is
+      try {
         const res = await fetch('https://ipwho.is/');
         const data = await res.json();
         if (data.success && data.latitude && data.longitude) {
@@ -519,12 +537,13 @@ export function useAppState() {
           if (city && country) setDetectedLocationName(`${city}, ${country}`);
           setLocationSource('ip');
           setGeoStatus('success');
-        } else {
-          setGeoStatus('error');
+          return;
         }
-      } catch {
-        setGeoStatus('error');
+      } catch (e) {
+        console.warn('IPWho failed, no fallbacks left.', e);
       }
+      
+      setGeoStatus('error');
     };
 
     if (!navigator.geolocation) {
