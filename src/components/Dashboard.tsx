@@ -145,7 +145,10 @@ export default function Dashboard({
                   <div className="flex justify-between items-start">
                     <div className="flex flex-col">
                       <span className="text-[11px] uppercase font-bold text-gray-400 md:hidden mb-1 leading-none tracking-wider">{day.label}</span>
-                      <span className={`text-[22px] md:text-sm font-bold z-10 leading-none ${day.isToday ? 'text-emerald-700 dark:text-emerald-500' : 'text-slate-700 dark:text-slate-300'}`}>{day.dayNum}</span>
+                      <span className={`text-[22px] md:text-sm font-bold z-10 leading-none flex items-center gap-1 ${day.isToday ? 'text-emerald-700 dark:text-emerald-500' : 'text-slate-700 dark:text-slate-300'}`}>
+                        {day.dayNum}
+                        {day.hasVoluntary && <Sparkles className="w-3 h-3 text-amber-500 ml-1.5" />}
+                      </span>
                     </div>
                     <div className={`hidden md:block w-2 h-2 rounded-full mt-0.5 transition-colors absolute top-2.5 right-2.5 ${
                       day.isToday ? 'bg-emerald-500' : day.prayedCount > 0 ? 'bg-emerald-400' : day.missedCount > 0 ? 'bg-red-400' : 'bg-transparent'
@@ -170,6 +173,9 @@ export default function Dashboard({
                     <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-400" /><span className="text-white/90">{day.prayedCount} Prayed</span></div>
                     <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-red-400" /><span className="text-white/90">{day.missedCount} Missed</span></div>
                     <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-amber-400" /><span className="text-white/90">{day.qazaCount} Qaza</span></div>
+                    {day.hasVoluntary && (
+                      <div className="flex items-center gap-2"><Sparkles className="w-2.5 h-2.5 text-amber-400" /><span className="text-white/90">{day.voluntaryCount} Nafl</span></div>
+                    )}
                   </div>
                 </div>
               ))}

@@ -73,17 +73,6 @@ export default function QazaTracking({
           </div>
         </div>
 
-        {/* Daily Motivation */}
-        <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-gray-100 dark:border-zinc-800 shadow-sm p-6 flex flex-col items-center text-center relative overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 dark:from-indigo-900/10 to-transparent pointer-events-none" />
-          <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 dark:text-indigo-400 rounded-2xl flex items-center justify-center mb-3 transition-transform group-hover:scale-110 shrink-0">
-            <HeartHandshake className="w-5 h-5" />
-          </div>
-          <h4 className="font-bold text-xs text-gray-900 dark:text-white mb-2">Daily Motivation</h4>
-          <p className="text-[11px] text-gray-500 dark:text-gray-400 italic font-medium leading-relaxed mb-1 flex-1 flex items-center">&quot;Say, &apos;O My servants who have transgressed against themselves... do not despair of the mercy of Allah...&apos;&quot;</p>
-          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">— Quran 39:53</span>
-        </div>
-
         {/* Completion Estimate */}
         <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-gray-100 dark:border-zinc-800 shadow-sm p-6 flex flex-col items-center text-center relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/50 dark:from-emerald-900/10 to-transparent pointer-events-none" />
@@ -109,6 +98,17 @@ export default function QazaTracking({
               <p className="text-[9px] text-gray-400 mt-1.5 uppercase tracking-wide">Estimated Clearance</p>
             </div>
           )}
+        </div>
+
+        {/* Daily Motivation */}
+        <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-gray-100 dark:border-zinc-800 shadow-sm p-6 flex flex-col items-center text-center relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 dark:from-indigo-900/10 to-transparent pointer-events-none" />
+          <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 dark:text-indigo-400 rounded-2xl flex items-center justify-center mb-3 transition-transform group-hover:scale-110 shrink-0">
+            <HeartHandshake className="w-5 h-5" />
+          </div>
+          <h4 className="font-bold text-xs text-gray-900 dark:text-white mb-2">Daily Motivation</h4>
+          <p className="text-[11px] text-gray-500 dark:text-gray-400 italic font-medium leading-relaxed mb-1 flex-1 flex items-center">&quot;Say, &apos;O My servants who have transgressed against themselves... do not despair of the mercy of Allah...&apos;&quot;</p>
+          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">— Quran 39:53</span>
         </div>
       </div>
 
@@ -163,6 +163,18 @@ export default function QazaTracking({
                     title="Add Qty"
                   >
                     <Plus className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                  </button>
+                  <div className="w-[1px] h-4 bg-gray-200 dark:bg-zinc-700 mx-0.5 shrink-0" />
+                  <button
+                    onClick={() => {
+                      const amt = parseInt(q.manualInput);
+                      if (amt > 0) { performQazaAction('remove', q.prayer_name, amt); updateManualInput(q.prayer_name, ''); }
+                    }}
+                    disabled={q.count <= 0}
+                    className="w-9 h-9 flex items-center justify-center rounded-xl bg-white dark:bg-zinc-900 hover:bg-gray-100 dark:hover:bg-zinc-700 text-gray-400 hover:text-red-500 transition-colors shadow-sm border border-gray-100 dark:border-zinc-800 shrink-0 group/btn disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Clear/remove Qty from backlog"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 group-hover/btn:scale-110 transition-transform"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
                   </button>
                 </div>
 

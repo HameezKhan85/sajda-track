@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle2, XCircle, History, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { CheckCircle2, XCircle, History, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Sparkles } from 'lucide-react';
 import { MONTH_NAMES, type DayData } from '@/lib/utils';
 import { getHijriMonthName } from '@/lib/utils';
 
@@ -23,7 +23,9 @@ export default function Calendar({
   return (
     <div className="space-y-6 lg:space-y-8">
       {/* Month Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+      <div className="flex flex-col gap-3">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white px-1">Prayer Stats of the Month</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <div className="bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/30 rounded-2xl p-4 flex items-center justify-between transition-all hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:shadow-sm">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center shrink-0">
@@ -62,6 +64,20 @@ export default function Calendar({
           </div>
           <span className="text-2xl font-black text-amber-600 dark:text-amber-400 min-w-[28px] inline-block text-right">{monthStats.qaza}</span>
         </div>
+
+        <div className="bg-indigo-50/50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-800/30 rounded-2xl p-4 flex items-center justify-between transition-all hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center shrink-0">
+              <Sparkles className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <div>
+              <h3 className="font-bold text-gray-900 dark:text-white text-sm">Voluntary</h3>
+              <p className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 font-medium">Nafl prayers done</p>
+            </div>
+          </div>
+          <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400 min-w-[28px] inline-block text-right">{(monthStats as any).voluntary || 0}</span>
+        </div>
+      </div>
       </div>
 
       {/* Title & Hijri toggle */}
@@ -123,7 +139,7 @@ export default function Calendar({
               <div
                 key={day.dateStr}
                 onClick={() => !day.isFuture && openDayModal(day)}
-                className={`transition-all duration-200 relative group hover:z-[70] flex flex-col justify-between p-4 md:p-3 rounded-2xl border min-h-[110px] md:min-h-0 ${
+                className={`transition-all duration-200 relative group hover:z-[70] flex flex-col justify-between p-4 md:p-3 rounded-2xl border min-h-[96px] ${
                   day.isFuture
                     ? 'opacity-40 cursor-not-allowed border-dashed border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/50'
                     : 'cursor-pointer hover:-translate-y-1 hover:shadow-sm border-gray-100 dark:border-zinc-800 bg-white dark:bg-zinc-900'
@@ -137,26 +153,30 @@ export default function Calendar({
                         <span className="md:hidden text-gray-400 dark:text-zinc-500 text-[12px] font-black uppercase tracking-widest">
                           {new Date(day.dateStr + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short' })}
                         </span>
-                        <span className={`text-[22px] md:text-lg font-black md:font-bold leading-none ${
+                        <span className={`text-[22px] md:text-lg font-black md:font-bold leading-none flex items-center gap-1 ${
                           day.isToday && !day.isFuture ? 'text-emerald-700 dark:text-emerald-500' : 'text-slate-700 dark:text-slate-300'
-                        }`}>{day.dayNum}</span>
+                        }`}>{day.dayNum}
+                        {day.hasVoluntary && !day.isFuture && <Sparkles className="w-3.5 h-3.5 text-amber-500 mt-0.5 ml-1.5" />}
+                        </span>
                       </div>
                     </div>
                     {showHijri && (
                       <div className={`mt-1 md:my-1 truncate max-w-full inline-flex self-start ${
-                        day.hijriDayNum == '1' ? 'bg-emerald-500 px-2 py-1 md:px-1.5 md:py-1.5 rounded-md md:rounded shadow-sm flex items-center' : ''
+                        parseInt(String(day.hijriDayNum).trim()) === 1 ? 'bg-emerald-500 px-2 py-1 md:px-1.5 md:py-1.5 rounded-md md:rounded shadow-sm flex items-center' : ''
                       }`}>
                         <span className={`text-sm md:text-base font-bold leading-[1.15] md:leading-none tracking-tight truncate w-full ${
-                          day.hijriDayNum == '1' ? 'text-white md:text-xs' : 'text-emerald-600 dark:text-emerald-400'
-                        }`}>{day.hijriDayNum == '1' ? `1st ${day.hijriMonthStr}` : day.hijriDayNum}</span>
+                          parseInt(String(day.hijriDayNum).trim()) === 1 ? 'text-white md:text-xs' : 'text-emerald-600 dark:text-emerald-400'
+                        }`}>{parseInt(String(day.hijriDayNum).trim()) === 1 ? `1st ${day.hijriMonthStr}` : day.hijriDayNum}</span>
                       </div>
                     )}
                   </div>
-                  {!day.isFuture && (
-                    <div className={`hidden md:block w-2 h-2 rounded-full mt-0.5 shrink-0 transition-colors ${
-                      day.isToday ? 'bg-emerald-500' : day.prayedCount > 0 ? 'bg-emerald-400' : day.missedCount > 0 ? 'bg-red-400' : 'bg-transparent'
-                    }`} />
-                  )}
+                  <div className="flex gap-1">
+                    {!day.isFuture && (
+                      <div className={`hidden md:block w-2 h-2 rounded-full mt-0.5 shrink-0 transition-colors ${
+                        day.isToday ? 'bg-emerald-500' : day.prayedCount > 0 ? 'bg-emerald-400' : day.missedCount > 0 ? 'bg-red-400' : 'bg-transparent'
+                      }`} />
+                    )}
+                  </div>
                 </div>
 
                 {/* Bottom Dots */}
@@ -179,6 +199,9 @@ export default function Calendar({
                     <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-400" /><span className="text-white/90">{day.prayedCount} Prayed</span></div>
                     <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-red-400" /><span className="text-white/90">{day.missedCount} Missed</span></div>
                     <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-amber-400" /><span className="text-white/90">{day.qazaCount} Qaza</span></div>
+                    {day.hasVoluntary && (
+                      <div className="flex items-center gap-2"><Sparkles className="w-2.5 h-2.5 text-amber-400" /><span className="text-white/90">{day.voluntaryCount} Nafl</span></div>
+                    )}
                   </div>
                 )}
               </div>

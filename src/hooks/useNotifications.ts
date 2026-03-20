@@ -116,9 +116,12 @@ export function useNotifications({ prayerTimes, todayLogs }: UseNotificationsPro
     if (granted) {
       setNotificationsEnabled(true);
       localStorage.setItem(PERM_KEY, 'true');
+      setTimeout(() => addNotification("Notifications Enabled", "You will now receive prayer reminders. Make sure to keep the tab open or app installed.", "system"), 500);
+    } else {
+      setTimeout(() => addNotification("Permission Denied", "System alerts are blocked. Please unblock in your browser to receive push reminders.", "system"), 500);
     }
     return granted;
-  }, [requestPermission]);
+  }, [requestPermission, addNotification]);
 
   // ─── Disable notifications ───
   const disableNotifications = useCallback(() => {

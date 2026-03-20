@@ -1,7 +1,8 @@
 'use client';
 
-import { X, Check, History } from 'lucide-react';
-import { PRAYERS } from '@/lib/utils';
+import { useState } from 'react';
+import { X, Check, History, ChevronDown } from 'lucide-react';
+import { PRAYERS, VOLUNTARY } from '@/lib/utils';
 
 interface DayModalProps {
   open: boolean;
@@ -12,6 +13,8 @@ interface DayModalProps {
 }
 
 export default function DayModal({ open, onClose, selectedDate, selectedDateLogs, updateStatusDate }: DayModalProps) {
+  const [isNaflOpen, setIsNaflOpen] = useState(false);
+
   if (!open || !selectedDate) return null;
 
   const formattedDate = new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', {
@@ -62,6 +65,34 @@ export default function DayModal({ open, onClose, selectedDate, selectedDateLogs
               </div>
             );
           })}
+
+          <div className="mt-4 pt-4 border-t border-gray-100 dark:border-zinc-800">
+            <button onClick={() => setIsNaflOpen(!isNaflOpen)} className="flex items-center justify-between w-full group py-1">
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors">Voluntary (Nafl)</h3>
+              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${isNaflOpen ? 'rotate-180' : ''}`} />
+            </button>
+            <div className={`space-y-2 overflow-hidden transition-all duration-300 ${isNaflOpen ? 'mt-3 max-h-[400px] opacity-100' : 'max-h-0 opacity-0'}`}>
+              {VOLUNTARY.map(prayer => {
+                const isPrayed = selectedDateLogs[prayer] === 'Prayed';
+                return (
+                  <button
+                    key={prayer}
+                    onClick={() => updateStatusDate(selectedDate, prayer, isPrayed ? 'None' : 'Prayed', 1)}
+                    className={`w-full flex items-center justify-between p-3 rounded-2xl border transition-all duration-200 group active:scale-95 ${
+                      isPrayed
+                        ? 'bg-sage-600 border-sage-600 text-white shadow-md'
+                        : 'bg-gray-50 dark:bg-zinc-800 border-gray-100 dark:border-zinc-700 text-gray-600 dark:text-zinc-300 hover:border-sage-200 dark:hover:border-zinc-600'
+                    }`}
+                  >
+                    <span className="font-bold text-sm">{prayer}</span>
+                    <div className="w-5 h-5 rounded-full border-2 border-current flex items-center justify-center transition-colors">
+                      <div className={`w-2.5 h-2.5 rounded-full bg-current text-white transition-all duration-300 ${isPrayed ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`} />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
     </div>

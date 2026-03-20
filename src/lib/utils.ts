@@ -128,6 +128,8 @@ export interface DayData {
   prayedCount: number;
   missedCount: number;
   qazaCount: number;
+  hasVoluntary?: boolean;
+  voluntaryCount?: number;
   label?: string;
 }
 

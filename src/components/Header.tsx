@@ -38,6 +38,8 @@ interface HeaderProps {
   markAllRead: () => void;
   clearNotifications: () => void;
   dismissNotification: (id: string) => void;
+  notificationsEnabled: boolean;
+  enableNotifications: () => Promise<boolean>;
   // Google Drive
   driveConnected: boolean;
   driveSyncing: boolean;
@@ -65,6 +67,7 @@ export default function Header({
   setSettingsModalOpen, setResetModalOpen, importData, exportData,
   notifications, unreadCount,
   markAllRead, clearNotifications, dismissNotification,
+  notificationsEnabled, enableNotifications,
   driveConnected, driveSyncing, lastSyncTime,
   connectDrive, disconnectDrive, syncDrive,
 }: HeaderProps) {
@@ -113,21 +116,19 @@ export default function Header({
         </div>
 
         <div className="hidden lg:flex items-center gap-1 sm:gap-3">
+          {/* 1. Theme Toggle */}
           <button onClick={toggleTheme} className="p-2 text-gray-400 hover:text-sage-600 transition-colors relative" title="Toggle Theme">
             {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
 
-          {deferredPrompt && !isStandalone && (
+          {/* 2. PWA */}
+          {!isStandalone && (
             <button onClick={installPWA} className="hide-in-pwa p-2 text-sage-500 dark:text-sage-400 hover:text-sage-700 dark:hover:text-sage-300 transition-colors relative" title="Install App">
               <DownloadCloud className="w-5 h-5" />
             </button>
           )}
 
-          <button onClick={() => setSettingsModalOpen(true)} className="p-2 text-gray-400 hover:text-sage-600 transition-colors relative" title="Settings">
-            <Settings className="w-5 h-5" />
-          </button>
-
-          {/* Sync Dropdown */}
+          {/* 3. Sync */}
           <SyncDropdown
             fileInputRef={fileInputRef}
             exportData={exportData}
@@ -139,23 +140,32 @@ export default function Header({
             disconnectDrive={disconnectDrive}
             syncDrive={syncDrive}
           />
+
         </div>
 
-        {/* Persistent Mobile + Desktop notification Bell */}
-        <div className="flex items-center ml-1 sm:ml-3">
+        {/* Universal Action Buttons (Notifications & Mobile Toggle) */}
+        <div className="flex items-center gap-1 sm:gap-2 ml-1 sm:ml-2">
+          {/* Notifications (Now universal) */}
           <NotificationDropdown
             notifications={notifications}
             unreadCount={unreadCount}
             markAllRead={markAllRead}
             clearNotifications={clearNotifications}
             dismissNotification={dismissNotification}
+            notificationsEnabled={notificationsEnabled}
+            enableNotifications={enableNotifications}
           />
-        </div>
 
-        {/* Mobile Toggle */}
-        <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="lg:hidden ml-2 p-1.5 rounded-xl border border-gray-200 dark:border-zinc-700 text-gray-500 bg-gray-50 dark:bg-zinc-800 hover:text-sage-600 transition-colors">
-          <Menu className="w-5 h-5" />
-        </button>
+          {/* 5. Settings */}
+          <button onClick={() => setSettingsModalOpen(true)} className="hidden lg:flex p-2 text-gray-400 hover:text-sage-600 transition-colors relative" title="Settings">
+            <Settings className="w-5 h-5" />
+          </button>
+
+          {/* Mobile Toggle */}
+          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="lg:hidden p-1.5 rounded-xl border border-gray-200 dark:border-zinc-700 text-gray-500 bg-gray-50 dark:bg-zinc-800 hover:text-sage-600 transition-colors">
+            <Menu className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Hidden File Input */}
@@ -201,15 +211,21 @@ export default function Header({
             })}
           </nav>
           <div className="border-t border-gray-100 dark:border-zinc-800 pt-2 mt-2 flex flex-col gap-2">
+            {/* 1. Theme */}
             <button onClick={() => { toggleTheme(); setMobileMenuOpen(false); }} className="flex items-center px-4 py-3 rounded-xl transition-all duration-200 font-medium text-sm gap-3 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800">
               {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               <span>Toggle Theme</span>
             </button>
-            <button onClick={() => { setSettingsModalOpen(true); setMobileMenuOpen(false); }} className="flex items-center px-4 py-3 rounded-xl transition-all duration-200 font-medium text-sm gap-3 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800">
-              <Settings className="w-5 h-5" />
-              <span>Settings</span>
-            </button>
 
+            {/* 2. PWA */}
+            {!isStandalone && (
+              <button onClick={() => { installPWA(); setMobileMenuOpen(false); }} className="flex items-center px-4 py-3 rounded-xl transition-all duration-200 font-medium text-sm gap-3 text-sage-600 dark:text-sage-400 hover:bg-sage-50 dark:hover:bg-sage-900/20">
+                <DownloadCloud className="w-5 h-5" />
+                <span>Install App</span>
+              </button>
+            )}
+
+            {/* 3. Sync */}
             <MobileSyncSection
               fileInputRef={fileInputRef}
               setMobileMenuOpen={setMobileMenuOpen}
@@ -222,6 +238,12 @@ export default function Header({
               disconnectDrive={disconnectDrive}
               syncDrive={syncDrive}
             />
+
+            {/* 5. Settings */}
+            <button onClick={() => { setSettingsModalOpen(true); setMobileMenuOpen(false); }} className="flex items-center px-4 py-3 rounded-xl transition-all duration-200 font-medium text-sm gap-3 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800">
+              <Settings className="w-5 h-5" />
+              <span>Settings</span>
+            </button>
           </div>
         </div>
       )}
@@ -229,16 +251,19 @@ export default function Header({
   );
 }
 
-// ─── Notification Dropdown (Desktop) ───
+// ─── Notification Dropdown (Desktop & Mobile) ───
 function NotificationDropdown({
   notifications, unreadCount,
   markAllRead, clearNotifications, dismissNotification,
+  notificationsEnabled, enableNotifications
 }: {
   notifications: AppNotification[];
   unreadCount: number;
   markAllRead: () => void;
   clearNotifications: () => void;
   dismissNotification: (id: string) => void;
+  notificationsEnabled: boolean;
+  enableNotifications: () => Promise<boolean>;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -266,7 +291,7 @@ function NotificationDropdown({
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-[20px] w-80 bg-white dark:bg-zinc-800 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-black/50 border border-gray-100 dark:border-zinc-700 z-50 overflow-hidden flex flex-col max-h-[420px]">
+          <div className="absolute right-[-45px] sm:right-0 top-full mt-[20px] w-screen max-w-[320px] sm:w-80 bg-white dark:bg-zinc-800 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-black/50 border border-gray-100 dark:border-zinc-700 z-50 overflow-hidden flex flex-col max-h-[80vh] sm:max-h-[420px]">
             {/* Header */}
             <div className="px-4 py-3 border-b border-gray-100 dark:border-zinc-700 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
@@ -285,8 +310,21 @@ function NotificationDropdown({
               </div>
             </div>
 
+            {/* Missing Permission Alert */}
+            {!notificationsEnabled && (
+              <div className="px-4 py-3 bg-sage-50 dark:bg-sage-900/10 border-b border-sage-100 dark:border-sage-900/20 shrink-0">
+                <p className="text-xs text-sage-800 dark:text-sage-300 font-medium mb-2 leading-tight">Notifications are disabled. Turn them on to get prayer reminders and system alerts.</p>
+                <button
+                  onClick={() => enableNotifications()}
+                  className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-sage-600 hover:bg-sage-700 dark:bg-sage-500 dark:hover:bg-sage-600 rounded-lg transition-colors shadow-sm"
+                >
+                  <Bell className="w-3 h-3" /> Enable Notifications
+                </button>
+              </div>
+            )}
+
             {/* Notification List */}
-            <div className="overflow-y-auto flex-1">
+            <div className="overflow-y-auto flex-1 overscroll-contain">
               {notifications.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 px-4">
                   <div className="w-12 h-12 rounded-2xl bg-gray-50 dark:bg-zinc-700 flex items-center justify-center text-gray-300 dark:text-zinc-500 mb-3">

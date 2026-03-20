@@ -89,17 +89,20 @@ export function upsertPrayer(date: string, prayerName: string, status: string, i
 
 // ─── History ───
 export function getHistory(from: string, to: string): Record<string, {
-  prayed: number; missed: number; qaza: number; total: number;
+  prayed: number; missed: number; qaza: number; total: number; voluntary: number;
   prayers: Record<string, string>;
 }> {
   const store = getAllDaily();
-  const result: Record<string, { prayed: number; missed: number; qaza: number; total: number; prayers: Record<string, string> }> = {};
+  const result: Record<string, { prayed: number; missed: number; qaza: number; total: number; voluntary: number; prayers: Record<string, string> }> = {};
 
   for (const [date, prayers] of Object.entries(store)) {
     if (date >= from && date <= to) {
-      const entry = { prayed: 0, missed: 0, qaza: 0, total: 0, prayers: {} as Record<string, string> };
+      const entry = { prayed: 0, missed: 0, qaza: 0, total: 0, voluntary: 0, prayers: {} as Record<string, string> };
       for (const [prayer, log] of Object.entries(prayers)) {
-        if (log.isVoluntary) continue;
+        if (log.isVoluntary) {
+          if (log.status === 'Prayed') entry.voluntary++;
+          continue;
+        }
         entry.total++;
         entry.prayers[prayer] = log.status;
         if (log.status === 'Prayed') entry.prayed++;
@@ -186,6 +189,8 @@ export function qazaAction(action: string, prayerName: string, amount: number): 
     const actual = Math.min(store[prayerName].count, amount);
     store[prayerName].count = Math.max(0, store[prayerName].count - amount);
     store[prayerName].totalCompleted += actual;
+  } else if (action === 'remove') {
+    store[prayerName].count = Math.max(0, store[prayerName].count - amount);
   } else if (action === 'decrement') {
     if (store[prayerName].count > 0) {
       store[prayerName].count--;

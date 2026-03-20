@@ -1,6 +1,6 @@
 'use client';
 
-import { Crosshair, MapPin, Check, Loader2, X, AlertTriangle } from 'lucide-react';
+import { Crosshair, Settings, Check, Loader2, X, AlertTriangle, MapPin } from 'lucide-react';
 
 interface SettingsModalProps {
   open: boolean;
@@ -36,11 +36,10 @@ export default function SettingsModal({
         <div className="bg-gradient-to-br from-sage-800 via-sage-900 to-black dark:from-zinc-800 dark:to-zinc-900 p-6 text-white flex justify-between items-center shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-white/15 flex items-center justify-center flex-shrink-0">
-              <MapPin className="w-5 h-5" />
+              <Settings className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold leading-tight">Prayer Settings</h2>
-              <p className="text-sage-200/80 text-xs font-medium">Configure location for prayer times</p>
+              <h2 className="text-lg font-bold leading-tight">Settings</h2>
             </div>
           </div>
           <button onClick={onClose} className="text-white/70 hover:text-white transition-colors bg-white/10 p-2 rounded-xl">
@@ -114,7 +113,12 @@ export default function SettingsModal({
             <div className="flex items-center justify-between bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl px-4 py-3">
               <button
                 onClick={() => setSettingsHijriOffset(Math.max(-2, settingsHijriOffset - 1))}
-                className="w-10 h-10 flex items-center justify-center rounded-lg bg-white dark:bg-zinc-700 text-gray-600 dark:text-zinc-300 shadow-sm border border-gray-200 dark:border-zinc-600 active:scale-95 transition-all font-bold text-lg"
+                disabled={settingsHijriOffset <= -2}
+                className={`w-10 h-10 flex items-center justify-center rounded-lg shadow-sm border font-bold text-lg transition-all ${
+                  settingsHijriOffset <= -2 
+                    ? 'bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-600 border-gray-100 dark:border-zinc-800 cursor-not-allowed opacity-50'
+                    : 'bg-white dark:bg-zinc-700 text-gray-600 dark:text-zinc-300 border-gray-200 dark:border-zinc-600 active:scale-95'
+                }`}
               >-</button>
               <div className="flex flex-col items-center">
                 <span className="text-sm font-bold text-gray-800 dark:text-white">
@@ -123,7 +127,12 @@ export default function SettingsModal({
               </div>
               <button
                 onClick={() => setSettingsHijriOffset(Math.min(2, settingsHijriOffset + 1))}
-                className="w-10 h-10 flex items-center justify-center rounded-lg bg-white dark:bg-zinc-700 text-gray-600 dark:text-zinc-300 shadow-sm border border-gray-200 dark:border-zinc-600 active:scale-95 transition-all font-bold text-lg"
+                disabled={settingsHijriOffset >= 2}
+                className={`w-10 h-10 flex items-center justify-center rounded-lg shadow-sm border font-bold text-lg transition-all ${
+                  settingsHijriOffset >= 2 
+                    ? 'bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-600 border-gray-100 dark:border-zinc-800 cursor-not-allowed opacity-50'
+                    : 'bg-white dark:bg-zinc-700 text-gray-600 dark:text-zinc-300 border-gray-200 dark:border-zinc-600 active:scale-95'
+                }`}
               >+</button>
             </div>
           </div>

@@ -239,16 +239,19 @@ export function useAppState() {
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
     const monthLogData = localDB.getPrayersByMonth(month + 1, year);
-    const monthLogs: Record<string, { prayer: string; status: string }[]> = {};
-    const ms = { prayed: 0, missed: 0, qaza: 0 };
+    const monthLogs: Record<string, { prayer: string; status: string; isVoluntary?: boolean }[]> = {};
+    const ms = { prayed: 0, missed: 0, qaza: 0, voluntary: 0 };
 
     monthLogData.forEach(l => {
+      if (!monthLogs[l.date]) monthLogs[l.date] = [];
       if (l.is_voluntary === 0) {
-        if (!monthLogs[l.date]) monthLogs[l.date] = [];
         monthLogs[l.date].push({ prayer: l.prayer_name, status: l.status });
         if (l.status === 'Prayed') ms.prayed++;
         else if (l.status === 'Missed') ms.missed++;
         else if (l.status === 'Qaza') ms.qaza++;
+      } else {
+        monthLogs[l.date].push({ prayer: l.prayer_name, status: l.status, isVoluntary: true });
+        if (l.status === 'Prayed') ms.voluntary++;
       }
     });
 
@@ -272,16 +275,15 @@ export function useAppState() {
         const found = dayLogs.find(l => l.prayer === p);
         return found ? found.status : 'None';
       });
+      const hasVoluntary = dayLogs.some(l => l.isVoluntary && l.status === 'Prayed');
 
       let hijriDayNum: string | undefined;
       let hijriMonthStr: string | undefined;
-      if (showHijri) {
-        try {
-          hijriDayNum = new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', { day: 'numeric' }).format(new Date(year, month, i - 1 + settingsHijriOffset));
-          hijriMonthStr = new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', { month: 'long' }).format(new Date(year, month, i - 1 + settingsHijriOffset));
-        } catch (e) {
-          console.error("Error formatting Hijri date:", e);
-        }
+      try {
+        hijriDayNum = new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', { day: 'numeric' }).format(new Date(year, month, i - 1 + settingsHijriOffset));
+        hijriMonthStr = new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', { month: 'long' }).format(new Date(year, month, i - 1 + settingsHijriOffset));
+      } catch (e) {
+        console.error("Error formatting Hijri date:", e);
       }
 
       days.push({
@@ -291,11 +293,13 @@ export function useAppState() {
         dateStr,
         isToday: dateStr === todayStr,
         isFuture,
+        hasVoluntary,
         logs: dayLogs,
         prayerStatuses,
-        prayedCount: dayLogs.filter(l => l.status === 'Prayed').length,
+        prayedCount: dayLogs.filter(l => l.status === 'Prayed' && !l.isVoluntary).length,
         missedCount: dayLogs.filter(l => l.status === 'Missed').length,
         qazaCount: dayLogs.filter(l => l.status === 'Qaza').length,
+        voluntaryCount: dayLogs.filter(l => l.status === 'Prayed' && l.isVoluntary).length,
       });
     }
 
@@ -317,7 +321,7 @@ export function useAppState() {
       const d = new Date();
       d.setDate(today.getDate() - i);
       const dateStr = getLocalYYYYMMDD(d);
-      const dayStats = historyData[dateStr] || { prayed: 0, missed: 0, qaza: 0, prayers: {} };
+      const dayStats = historyData[dateStr] || { prayed: 0, missed: 0, qaza: 0, voluntary: 0, prayers: {} };
       const prayerOrder = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
       const prayerStatuses = prayerOrder.map(p => dayStats.prayers?.[p] || 'None');
 
@@ -331,6 +335,8 @@ export function useAppState() {
         dateStr,
         isToday: d.toDateString() === today.toDateString(),
         isFuture: false,
+        hasVoluntary: (dayStats.voluntary || 0) > 0,
+        voluntaryCount: dayStats.voluntary || 0,
         logs: [],
       });
     }
@@ -389,7 +395,7 @@ export function useAppState() {
     }
 
     fetchQaza();
-    showToast(`Successfully ${action === 'add' ? 'added' : 'subtracted'} ${amount} ${prayer}.`);
+    showToast(`Successfully ${action === 'remove' ? 'cleared' : action === 'add' ? 'added' : 'subtracted'} ${amount} ${prayer}.`);
   }, [fetchQaza]);
 
   const showToast = useCallback((msg: string, type: 'success' | 'error' = 'success') => {
@@ -540,7 +546,8 @@ export function useAppState() {
     setSettingsConfigured(true);
     setSettingsModalOpen(false);
     await fetchPrayerTimings();
-  }, [settingsLat, settingsLng, settingsFiqh, detectedLocationName, locationSource, fetchPrayerTimings]);
+    generateCalendar();
+  }, [settingsLat, settingsLng, settingsFiqh, settingsHijriOffset, detectedLocationName, locationSource, fetchPrayerTimings, generateCalendar]);
 
   const openDayModal = useCallback((day: DayData) => {
     if (day.isPadding) return;
@@ -561,6 +568,8 @@ export function useAppState() {
         setIsStandalone(true);
         localStorage.setItem('pwa_installed', 'true');
       }
+    } else {
+      setAlertModal({ open: true, title: 'Install App', message: 'To install Sajda, please open your browser menu (Chrome/Safari/Edge) and select "Add to Home Screen" or "Install App".', type: 'success' });
     }
   }, [deferredPrompt]);
 

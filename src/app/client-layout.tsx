@@ -34,6 +34,8 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
         markAllRead={notifs.markAllRead}
         clearNotifications={notifs.clearNotifications}
         dismissNotification={notifs.dismissNotification}
+        notificationsEnabled={notifs.notificationsEnabled}
+        enableNotifications={notifs.enableNotifications}
         driveConnected={state.driveConnected}
         driveSyncing={state.driveSyncing}
         lastSyncTime={state.lastSyncTime}
